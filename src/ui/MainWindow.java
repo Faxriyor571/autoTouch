@@ -17,9 +17,9 @@ public class MainWindow extends JFrame {
     private static final Color BG_CARD       = new Color(22,  27,  34);
     private static final Color BG_INPUT      = new Color(30,  37,  46);
     private static final Color ACCENT_BLUE   = new Color(88, 166, 255);
-    private static final Color ACCENT_GREEN  = new Color(63, 185, 80);
+    private static final Color ACCENT_GREEN  = new Color(63, 185,  80);
     private static final Color ACCENT_RED    = new Color(248, 81,  73);
-    private static final Color ACCENT_ORANGE = new Color(255, 166,  0);
+    private static final Color ACCENT_ORANGE = new Color(255, 166,   0);
     private static final Color TEXT_PRIMARY  = new Color(230, 237, 243);
     private static final Color TEXT_MUTED    = new Color(125, 133, 144);
     private static final Color BORDER_COLOR  = new Color(48,  54,  61);
@@ -34,22 +34,20 @@ public class MainWindow extends JFrame {
     private final ClickService      clickService;
 
     // ─── UI Components ───────────────────────────────────────────
-    private JLabel     currentTimeLabel;
-    private JTextField targetTimeField;
-    private JLabel     statusLabel;
-    private JLabel     statusDot;
-    private JLabel[]   pointLabels = new JLabel[4];
-    private JButton    startButton;
-    private JButton    stopButton;
+    private JLabel      currentTimeLabel;
+    private JTextField  targetTimeField;
+    private JLabel      statusLabel;
+    private JLabel      statusDot;
+    private JLabel[]    pointLabels = new JLabel[4];
+    private JButton     startButton;
+    private JButton     stopButton;
 
     public MainWindow(CoordinateService coordinateService,
                       TimerService      timerService,
                       ClickService      clickService) {
-
         this.coordinateService = coordinateService;
         this.timerService      = timerService;
         this.clickService      = clickService;
-
         setupWindow();
         buildUI();
         startClock();
@@ -65,9 +63,10 @@ public class MainWindow extends JFrame {
         setMinimumSize(new Dimension(420, 640));
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setBackground(BG_DARK);
+        getContentPane().setBackground(BG_DARK);
 
         addWindowListener(new WindowAdapter() {
+            @Override
             public void windowClosing(WindowEvent e) {
                 timerService.stopClock();
                 timerService.stopCountdown();
@@ -80,26 +79,36 @@ public class MainWindow extends JFrame {
     // ════════════════════════════════════════════════════════════
 
     private void buildUI() {
-        JPanel root = new JPanel();
-        root.setBackground(BG_DARK);
-        root.setLayout(new BoxLayout(root, BoxLayout.Y_AXIS));
-        root.setBorder(new EmptyBorder(20, 20, 16, 20));
+        // GridBagLayout — komponentlarni cho'zmasdan to'g'ri joylashtiradi
+        JPanel wrapper = new JPanel(new GridBagLayout());
+        wrapper.setBackground(BG_DARK);
 
-        root.add(buildHeader());
-        root.add(vgap(18));
-        root.add(buildClockCard());
-        root.add(vgap(12));
-        root.add(buildTargetCard());
-        root.add(vgap(12));
-        root.add(buildCoordinatesCard());
-        root.add(vgap(12));
-        root.add(buildStatusCard());
-        root.add(vgap(18));
-        root.add(buildActionButtons());
-        root.add(vgap(16));
-        root.add(buildFooter());
+        JPanel content = new JPanel();
+        content.setBackground(BG_DARK);
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        setContentPane(root);
+        content.add(buildHeader());
+        content.add(vgap(16));
+        content.add(buildClockCard());
+        content.add(vgap(10));
+        content.add(buildTargetCard());
+        content.add(vgap(10));
+        content.add(buildCoordinatesCard());
+        content.add(vgap(10));
+        content.add(buildStatusCard());
+        content.add(vgap(16));
+        content.add(buildActionButtons());
+        content.add(vgap(14));
+        content.add(buildFooter());
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill    = GridBagConstraints.BOTH;
+        gbc.weightx = 1.0;
+        gbc.weighty = 1.0;
+        wrapper.add(content, gbc);
+
+        setContentPane(wrapper);
         setVisible(true);
     }
 
@@ -108,20 +117,18 @@ public class MainWindow extends JFrame {
     // ════════════════════════════════════════════════════════════
 
     private JPanel buildHeader() {
-        JPanel p = transparent();
-        p.setLayout(new BorderLayout());
-        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        JPanel p = new JPanel(new BorderLayout());
+        p.setOpaque(false);
+        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        p.setPreferredSize(new Dimension(0, 42));
+        p.setMinimumSize(new Dimension(0, 42));
 
         JLabel title = new JLabel("Auto Touch Pro");
         title.setFont(font(22, Font.BOLD));
         title.setForeground(TEXT_PRIMARY);
 
-        JLabel badge = pill("v1.0", ACCENT_BLUE);
-        JPanel right = transparent();
-        right.add(badge);
-
-        p.add(title, BorderLayout.WEST);
-        p.add(right,  BorderLayout.EAST);
+        p.add(title,          BorderLayout.WEST);
+        p.add(pill("v1.0", ACCENT_BLUE), BorderLayout.EAST);
         return p;
     }
 
@@ -130,7 +137,7 @@ public class MainWindow extends JFrame {
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
 
         card.add(sectionLabel("JORIY VAQT"));
-        card.add(vgap(10));
+        card.add(vgap(8));
 
         currentTimeLabel = new JLabel("00:00:00.000");
         currentTimeLabel.setFont(new Font("Monospaced", Font.BOLD, 34));
@@ -146,7 +153,7 @@ public class MainWindow extends JFrame {
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
 
         card.add(sectionLabel("MAQSAD VAQT"));
-        card.add(vgap(10));
+        card.add(vgap(8));
 
         targetTimeField = new JTextField("12:00:00.000");
         targetTimeField.setFont(new Font("Monospaced", Font.PLAIN, 18));
@@ -154,6 +161,7 @@ public class MainWindow extends JFrame {
         targetTimeField.setBackground(BG_INPUT);
         targetTimeField.setCaretColor(ACCENT_BLUE);
         targetTimeField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+        targetTimeField.setPreferredSize(new Dimension(0, 44));
         targetTimeField.setAlignmentX(LEFT_ALIGNMENT);
         applyInputBorder(targetTimeField);
 
@@ -166,61 +174,60 @@ public class MainWindow extends JFrame {
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
 
         card.add(sectionLabel("KOORDINATALAR"));
-        card.add(vgap(12));
+        card.add(vgap(10));
 
         Coordinate[] pts = coordinateService.getAllPoints();
         for (int i = 0; i < pts.length; i++) {
             card.add(buildPointRow(i, pts[i]));
-            if (i < pts.length - 1) card.add(vgap(8));
+            if (i < pts.length - 1) card.add(vgap(6));
         }
-
         return card;
     }
 
     private JPanel buildPointRow(int index, Coordinate coord) {
-        JPanel row = new JPanel(new BorderLayout(12, 0));
+        JPanel row = new JPanel(new BorderLayout(10, 0));
         row.setBackground(BG_INPUT);
         row.setBorder(new CompoundBorder(
                 new LineBorder(BORDER_COLOR, 1, true),
                 new EmptyBorder(10, 14, 10, 14)
         ));
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+        row.setPreferredSize(new Dimension(0, 50));
         row.setAlignmentX(LEFT_ALIGNMENT);
 
         Color accent = POINT_COLORS[index];
 
-        // Left side
-        JPanel left = transparent();
+        JPanel left = new JPanel();
+        left.setOpaque(false);
         left.setLayout(new BoxLayout(left, BoxLayout.X_AXIS));
-
-        JLabel dot = colorDot(accent);
-        JLabel nameLabel = new JLabel(coord.getName());
-        nameLabel.setFont(font(13, Font.BOLD));
-        nameLabel.setForeground(TEXT_PRIMARY);
 
         pointLabels[index] = new JLabel(coord.toString());
         pointLabels[index].setFont(font(12, Font.PLAIN));
         pointLabels[index].setForeground(TEXT_MUTED);
 
-        left.add(dot);
+        JLabel nameLabel = new JLabel(coord.getName());
+        nameLabel.setFont(font(13, Font.BOLD));
+        nameLabel.setForeground(TEXT_PRIMARY);
+
+        left.add(colorDot(accent));
         left.add(hgap(10));
         left.add(nameLabel);
-        left.add(hgap(10));
+        left.add(hgap(8));
         left.add(pointLabels[index]);
 
-        // Save button
         JButton btn = smallButton("Saqlash", accent);
         btn.addActionListener(e -> {
-            // Robot API bilan joriy sichqoncha joyi olinadi
             Point pos = clickService.getCurrentMousePosition();
             coordinateService.savePoint(index, pos.x, pos.y);
-            pointLabels[index].setText(coord.toString());
+            pointLabels[index].setText(
+                    coordinateService.getAllPoints()[index].toString()
+            );
         });
 
-        // Hover
+        Color hoverBg = new Color(35, 43, 55);
         row.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) { row.setBackground(new Color(35, 43, 55)); }
-            public void mouseExited(MouseEvent e)  { row.setBackground(BG_INPUT); }
+            @Override public void mouseEntered(MouseEvent e) { row.setBackground(hoverBg);  }
+            @Override public void mouseExited(MouseEvent e)  { row.setBackground(BG_INPUT); }
         });
 
         row.add(left, BorderLayout.CENTER);
@@ -230,16 +237,17 @@ public class MainWindow extends JFrame {
 
     private JPanel buildStatusCard() {
         JPanel card = card();
-        card.setLayout(new BorderLayout());
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
 
-        card.add(sectionLabel("HOLAT"), BorderLayout.NORTH);
+        card.add(sectionLabel("HOLAT"));
+        card.add(vgap(8));
 
-        JPanel inner = transparent();
+        JPanel inner = new JPanel();
+        inner.setOpaque(false);
         inner.setLayout(new BoxLayout(inner, BoxLayout.X_AXIS));
-        inner.setBorder(new EmptyBorder(10, 0, 0, 0));
+        inner.setAlignmentX(LEFT_ALIGNMENT);
 
-        statusDot = colorDot(ACCENT_RED);
-
+        statusDot   = colorDot(ACCENT_RED);
         statusLabel = new JLabel("TO'XTAGAN");
         statusLabel.setFont(font(18, Font.BOLD));
         statusLabel.setForeground(ACCENT_RED);
@@ -249,18 +257,19 @@ public class MainWindow extends JFrame {
         inner.add(statusLabel);
         inner.add(Box.createHorizontalGlue());
 
-        card.add(inner, BorderLayout.CENTER);
+        card.add(inner);
         return card;
     }
 
     private JPanel buildActionButtons() {
-        JPanel p = transparent();
-        p.setLayout(new GridLayout(1, 2, 12, 0));
+        JPanel p = new JPanel(new GridLayout(1, 2, 12, 0));
+        p.setOpaque(false);
         p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
+        p.setPreferredSize(new Dimension(0, 52));
+        p.setAlignmentX(LEFT_ALIGNMENT);
 
-        startButton = actionButton("BOSHLASH",    ACCENT_GREEN);
-        stopButton  = actionButton("TO'XTATISH",  ACCENT_RED);
-
+        startButton = actionButton("BOSHLASH",   ACCENT_GREEN);
+        stopButton  = actionButton("TO'XTATISH", ACCENT_RED);
         stopButton.setEnabled(false);
 
         startButton.addActionListener(e -> onStart());
@@ -272,9 +281,11 @@ public class MainWindow extends JFrame {
     }
 
     private JPanel buildFooter() {
-        JPanel p = transparent();
-        p.setLayout(new BorderLayout());
-        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 24));
+        JPanel p = new JPanel(new BorderLayout());
+        p.setOpaque(false);
+        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 22));
+        p.setPreferredSize(new Dimension(0, 22));
+        p.setAlignmentX(LEFT_ALIGNMENT);
 
         JLabel left  = new JLabel("Auto Touch Pro");
         JLabel right = new JLabel("Professional Edition");
@@ -295,23 +306,15 @@ public class MainWindow extends JFrame {
         try {
             timerService.startCountdown(target, () ->
                     SwingUtilities.invokeLater(() -> {
-                        clickService.clickAll(
-                                coordinateService.getAllPoints(), 200
-                        );
+                        clickService.clickAll(coordinateService.getAllPoints(), 200);
                         setStatus(false);
                     })
             );
             setStatus(true);
             startButton.setEnabled(false);
             stopButton.setEnabled(true);
-
         } catch (IllegalArgumentException ex) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    ex.getMessage(),
-                    "Xato",
-                    JOptionPane.ERROR_MESSAGE
-            );
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Xato", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -336,9 +339,7 @@ public class MainWindow extends JFrame {
 
     private void startClock() {
         timerService.startClock(time ->
-                SwingUtilities.invokeLater(() ->
-                        currentTimeLabel.setText(time)
-                )
+                SwingUtilities.invokeLater(() -> currentTimeLabel.setText(time))
         );
     }
 
@@ -351,16 +352,11 @@ public class MainWindow extends JFrame {
         p.setBackground(BG_CARD);
         p.setBorder(new CompoundBorder(
                 new LineBorder(BORDER_COLOR, 1, true),
-                new EmptyBorder(16, 18, 16, 18)
+                new EmptyBorder(14, 16, 14, 16)
         ));
         p.setAlignmentX(LEFT_ALIGNMENT);
-        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
-        return p;
-    }
-
-    private JPanel transparent() {
-        JPanel p = new JPanel();
-        p.setOpaque(false);
+        // Kenglik cheksiz, BALANDLIK o'zi belgilanadi — bo'sh joy yo'qoladi
+        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, Short.MAX_VALUE));
         return p;
     }
 
@@ -373,48 +369,57 @@ public class MainWindow extends JFrame {
     }
 
     private JLabel colorDot(Color color) {
-        JLabel d = new JLabel();
+        JLabel d = new JLabel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getBackground());
+                g2.fillOval(0, 0, getWidth(), getHeight());
+                g2.dispose();
+            }
+        };
         d.setPreferredSize(new Dimension(10, 10));
         d.setMaximumSize(new Dimension(10, 10));
         d.setMinimumSize(new Dimension(10, 10));
-        d.setOpaque(true);
+        d.setOpaque(false);
         d.setBackground(color);
         return d;
     }
 
     private JLabel pill(String text, Color fg) {
         JLabel l = new JLabel(text) {
+            @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                        RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(BG_CARD);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
                 g2.setColor(BORDER_COLOR);
-                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 20, 20);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
         l.setFont(font(11, Font.BOLD));
         l.setForeground(fg);
-        l.setBorder(new EmptyBorder(3, 10, 3, 10));
+        l.setBorder(new EmptyBorder(4, 10, 4, 10));
         l.setOpaque(false);
         return l;
     }
 
     private JButton smallButton(String text, Color accent) {
         JButton b = new JButton(text) {
+            @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                        RenderingHints.VALUE_ANTIALIAS_ON);
-                Color bg = getModel().isPressed()  ? accent.darker()  :
-                        getModel().isRollover() ? accent.darker()  : BG_DARK;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                Color bg = getModel().isPressed()  ? accent.darker() :
+                        getModel().isRollover() ? accent          : BG_DARK;
                 g2.setColor(bg);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
                 g2.setColor(accent);
-                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 8, 8);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
                 g2.dispose();
                 super.paintComponent(g);
             }
@@ -425,19 +430,19 @@ public class MainWindow extends JFrame {
         b.setBorderPainted(false);
         b.setFocusPainted(false);
         b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        b.setPreferredSize(new Dimension(86, 32));
+        b.setPreferredSize(new Dimension(88, 32));
         return b;
     }
 
     private JButton actionButton(String text, Color accent) {
         JButton b = new JButton(text) {
+            @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                        RenderingHints.VALUE_ANTIALIAS_ON);
-                Color bg = !isEnabled()              ? new Color(40, 47, 54) :
-                        getModel().isPressed()    ? accent.darker()       :
-                                getModel().isRollover()   ? accent.brighter()     : accent;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                Color bg = !isEnabled()            ? new Color(40, 47, 54) :
+                        getModel().isPressed()  ? accent.darker()       :
+                                getModel().isRollover() ? accent.brighter()     : accent;
                 g2.setColor(bg);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
                 g2.dispose();
@@ -454,18 +459,12 @@ public class MainWindow extends JFrame {
     }
 
     private void applyInputBorder(JTextField f) {
-        Border normal = new CompoundBorder(
-                new LineBorder(BORDER_COLOR, 1, true),
-                new EmptyBorder(8, 12, 8, 12)
-        );
-        Border focused = new CompoundBorder(
-                new LineBorder(ACCENT_BLUE, 1, true),
-                new EmptyBorder(8, 12, 8, 12)
-        );
+        Border normal  = new CompoundBorder(new LineBorder(BORDER_COLOR, 1, true), new EmptyBorder(8, 12, 8, 12));
+        Border focused = new CompoundBorder(new LineBorder(ACCENT_BLUE,  1, true), new EmptyBorder(8, 12, 8, 12));
         f.setBorder(normal);
         f.addFocusListener(new FocusAdapter() {
-            public void focusGained(FocusEvent e) { f.setBorder(focused); }
-            public void focusLost(FocusEvent e)   { f.setBorder(normal);  }
+            @Override public void focusGained(FocusEvent e) { f.setBorder(focused); }
+            @Override public void focusLost(FocusEvent e)   { f.setBorder(normal);  }
         });
     }
 
@@ -473,7 +472,7 @@ public class MainWindow extends JFrame {
     //  UTILITIES
     // ════════════════════════════════════════════════════════════
 
-    private Font   font(int size, int style)  { return new Font("Segoe UI", style, size); }
+    private Font      font(int size, int style) { return new Font("Segoe UI", style, size); }
     private Component vgap(int h) { return Box.createRigidArea(new Dimension(0, h)); }
     private Component hgap(int w) { return Box.createRigidArea(new Dimension(w, 0)); }
 }
