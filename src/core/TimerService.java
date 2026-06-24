@@ -18,7 +18,9 @@ public class TimerService {
             Executors.newScheduledThreadPool(2);
 
     private ScheduledFuture<?> clockFuture;
-    private ScheduledFuture<?> countdownFuture;
+    private volatile ScheduledFuture<?> countdownFuture;
+
+    // ─── CLOCK ───────────────────────────────────────────────────
 
     public void startClock(Consumer<String> onTick) {
         stopClock();
@@ -35,6 +37,8 @@ public class TimerService {
         }
     }
 
+    // ─── COUNTDOWN ───────────────────────────────────────────────
+
     public void startCountdown(String targetTime,
                                Consumer<Long> onTick,
                                Consumer<Long> onReached) {
@@ -43,51 +47,81 @@ public class TimerService {
 
         stopCountdown();
 
+        // Faza 1: Scheduler — 200ms qolguncha
         countdownFuture = scheduler.scheduleAtFixedRate(() -> {
 
             long remainingMs = (targetNano - LocalTime.now().toNanoOfDay()) / 1_000_000;
 
-            if (remainingMs > 1) {
+            if (remainingMs > 200) {
                 onTick.accept(remainingMs);
 
-            } else if (remainingMs > -500) {
+            } else if (remainingMs >= 0) {
+                // 200ms qoldi — schedulerni to'xtatib precision thread ishga tushiramiz
                 stopCountdown();
-
-                // System.nanoTime() anchor:
-                // LocalTime.now() har chaqiruvda yangi obyekt → GC bosimi
-                // System.nanoTime() primitive long qaytaradi → GC yo'q
-                // Ikki soat bir xil emas — delta orqali o'tkazamiz
-                long anchorLocalNano = LocalTime.now().toNanoOfDay();
-                long anchorSysNano   = System.nanoTime();
-                long targetSysNano   = anchorSysNano + (targetNano - anchorLocalNano);
-
-                // Sof busy-wait — GC yo'q
-                while (System.nanoTime() < targetSysNano) {
-                    Thread.onSpinWait();
-                }
-
-                // Kechikish
-                long delayMs = Math.max(0,
-                        (System.nanoTime() - targetSysNano) / 1_000_000L);
-
-                onReached.accept(delayMs);
+                launchPrecisionThread(targetNano, onTick, onReached);
             }
 
         }, 0, 1, TimeUnit.MILLISECONDS);
     }
 
+    private void launchPrecisionThread(long targetNano,
+                                       Consumer<Long> onTick,
+                                       Consumer<Long> onReached) {
+        Thread t = new Thread(() -> {
+
+            // Faza 2: Thread.sleep(1) — 20ms qolguncha
+            while (true) {
+                long remainingMs = (targetNano - LocalTime.now().toNanoOfDay()) / 1_000_000;
+                if (remainingMs <= 20) break;
+                onTick.accept(remainingMs);
+                try {
+                    Thread.sleep(1);
+                } catch (InterruptedException e) {
+                    return;
+                }
+            }
+
+            // Faza 3: System.nanoTime busy-wait — oxirgi 20ms
+            // LocalTime.now() obyekt yaratadi → GC bosimi
+            // System.nanoTime() primitive long qaytaradi → GC yo'q
+            long anchorLocalNano = LocalTime.now().toNanoOfDay();
+            long anchorSysNano   = System.nanoTime();
+            long targetSysNano   = anchorSysNano + (targetNano - anchorLocalNano);
+
+            while (System.nanoTime() < targetSysNano) {
+                Thread.onSpinWait();
+            }
+
+            // Kechikish
+            long delayMs = Math.max(0,
+                    (System.nanoTime() - targetSysNano) / 1_000_000L);
+
+            onReached.accept(delayMs);
+
+        }, "precision-trigger-thread");
+
+        t.setPriority(Thread.MAX_PRIORITY);
+        t.setDaemon(true);
+        t.start();
+    }
+
     public void stopCountdown() {
-        if (countdownFuture != null && !countdownFuture.isCancelled()) {
-            countdownFuture.cancel(false);
+        ScheduledFuture<?> f = countdownFuture;
+        if (f != null && !f.isCancelled()) {
+            f.cancel(false);
             countdownFuture = null;
         }
     }
+
+    // ─── LIFECYCLE ───────────────────────────────────────────────
 
     public void shutdown() {
         stopClock();
         stopCountdown();
         scheduler.shutdownNow();
     }
+
+    // ─── HELPERS ─────────────────────────────────────────────────
 
     public static LocalTime parse(String targetTime) {
         try {
