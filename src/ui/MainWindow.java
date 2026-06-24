@@ -81,7 +81,7 @@ public class MainWindow extends JFrame {
     }
 
     private void setupWindow() {
-        setTitle("Auto Touch Pro");
+        setTitle("Auto_Click");
         setSize(500, 800);
         setMinimumSize(new Dimension(440, 680));
         setLocationRelativeTo(null);
@@ -130,7 +130,7 @@ public class MainWindow extends JFrame {
         p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
         p.setPreferredSize(new Dimension(0, 42));
         p.setMinimumSize(new Dimension(0, 42));
-        JLabel title = new JLabel("Auto Touch Pro");
+        JLabel title = new JLabel("Auto_Click");
         title.setFont(sf(Font.BOLD, 22));
         title.setForeground(TEXT_PRIMARY);
         p.add(title, BorderLayout.WEST);
