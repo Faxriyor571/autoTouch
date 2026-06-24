@@ -3,8 +3,10 @@ package core;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public class TimerService {
@@ -12,56 +14,83 @@ public class TimerService {
     private static final DateTimeFormatter FORMATTER =
             DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
 
-    private Timer clockTimer;
-    private Timer countdownTimer;
+    private final ScheduledExecutorService scheduler =
+            Executors.newScheduledThreadPool(2);
+
+    private ScheduledFuture<?> clockFuture;
+    private ScheduledFuture<?> countdownFuture;
 
     public void startClock(Consumer<String> onTick) {
         stopClock();
-        clockTimer = new Timer("clock-timer", true);
-        clockTimer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                String time = LocalTime.now().format(FORMATTER);
-                onTick.accept(time);
-            }
-        }, 0, 100);
+        clockFuture = scheduler.scheduleAtFixedRate(() -> {
+            String time = LocalTime.now().format(FORMATTER);
+            onTick.accept(time);
+        }, 0, 50, TimeUnit.MILLISECONDS);
     }
 
     public void stopClock() {
-        if (clockTimer != null) {
-            clockTimer.cancel();
-            clockTimer = null;
+        if (clockFuture != null && !clockFuture.isCancelled()) {
+            clockFuture.cancel(false);
+            clockFuture = null;
         }
     }
 
-    public void startCountdown(String targetTime, Runnable onReached) {
-        LocalTime target;
-        try {
-            target = LocalTime.parse(targetTime.trim(), FORMATTER);
-        } catch (DateTimeParseException e) {
-            throw new IllegalArgumentException(
-                    "Vaqt formati noto'g'ri! To'g'ri format: HH:mm:ss.SSS  Masalan: 14:30:00.000"
-            );
-        }
+    public void startCountdown(String targetTime,
+                               Consumer<Long> onTick,
+                               Consumer<Long> onReached) {
+        LocalTime target = parse(targetTime);
+        long targetNano  = target.toNanoOfDay();
 
         stopCountdown();
-        countdownTimer = new Timer("countdown-timer", true);
-        countdownTimer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                LocalTime now = LocalTime.now();
-                if (!now.isBefore(target)) {
-                    stopCountdown();
-                    onReached.run();
+        countdownFuture = scheduler.scheduleAtFixedRate(() -> {
+            long nowNano     = LocalTime.now().toNanoOfDay();
+            long remainingMs = (targetNano - nowNano) / 1_000_000;
+
+            if (remainingMs > 1) {
+                onTick.accept(remainingMs);
+            } else if (remainingMs > -500) {
+                stopCountdown();
+                while (LocalTime.now().toNanoOfDay() < targetNano) {
+                    Thread.onSpinWait();
                 }
+                long delayMs = (LocalTime.now().toNanoOfDay() - targetNano) / 1_000_000;
+                onReached.accept(delayMs);
             }
-        }, 0, 100);
+        }, 0, 1, TimeUnit.MILLISECONDS);
     }
 
     public void stopCountdown() {
-        if (countdownTimer != null) {
-            countdownTimer.cancel();
-            countdownTimer = null;
+        if (countdownFuture != null && !countdownFuture.isCancelled()) {
+            countdownFuture.cancel(false);
+            countdownFuture = null;
         }
+    }
+
+    public void shutdown() {
+        stopClock();
+        stopCountdown();
+        scheduler.shutdownNow();
+    }
+
+    public static LocalTime parse(String targetTime) {
+        try {
+            return LocalTime.parse(targetTime.trim(), FORMATTER);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException(
+                    "Vaqt formati noto'g'ri! To'g'ri format: HH:mm:ss.SSS   Masalan: 14:30:00.000"
+            );
+        }
+    }
+
+    public static String formatNow() {
+        return LocalTime.now().format(FORMATTER);
+    }
+
+    public static String formatRemainingMs(long ms) {
+        if (ms < 0) ms = 0;
+        long minutes = ms / 60_000;
+        long seconds = (ms % 60_000) / 1_000;
+        long millis  = ms % 1_000;
+        return String.format("%02d:%02d.%03d", minutes, seconds, millis);
     }
 }

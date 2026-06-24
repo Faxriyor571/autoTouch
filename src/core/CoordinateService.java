@@ -2,36 +2,42 @@ package core;
 
 import model.Coordinate;
 
-import java.awt.*;
+import java.awt.MouseInfo;
+import java.awt.Point;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class CoordinateService {
 
-    private static final int POINT_COUNT = 4;
+    private final List<Coordinate> points = new ArrayList<>();
 
-    private final Coordinate[] points = new Coordinate[] {
-            new Coordinate(0, 0, "Nuqta 1"),
-            new Coordinate(0, 0, "Nuqta 2"),
-            new Coordinate(0, 0, "Nuqta 3"),
-            new Coordinate(0, 0, "Nuqta 4")
-    };
-
-    public Coordinate captureCurrentMousePosition() {
-        PointerInfo pointerInfo = MouseInfo.getPointerInfo();
-        Point point = pointerInfo.getLocation();
-        return new Coordinate(point.x, point.y);
+    public Coordinate addCurrentMousePosition() {
+        Point p = MouseInfo.getPointerInfo().getLocation();
+        int number = points.size() + 1;
+        Coordinate coord = new Coordinate("Nuqta " + number, p.x, p.y);
+        points.add(coord);
+        System.out.println("[COORD] " + coord.getName() + " qo'shildi: X=" + p.x + " Y=" + p.y);
+        return coord;
     }
 
-    public Coordinate[] getAllPoints() {
-        return points;
+    public void remove(Coordinate coord) {
+        points.remove(coord);
+        renumber();
+        System.out.println("[COORD] Nuqta o'chirildi. Qolgan: " + points.size());
     }
 
-    public void savePoint(int index, int x, int y) {
-        if (index < 0 || index >= POINT_COUNT) {
-            throw new IndexOutOfBoundsException(
-                    "Index " + index + " noto'g'ri. 0-" + (POINT_COUNT - 1) + " oralig'ida bo'lishi kerak."
-            );
+    public List<Coordinate> getAll() {
+        return Collections.unmodifiableList(points);
+    }
+
+    public boolean isEmpty() {
+        return points.isEmpty();
+    }
+
+    private void renumber() {
+        for (int i = 0; i < points.size(); i++) {
+            points.get(i).setName("Nuqta " + (i + 1));
         }
-        points[index].setX(x);
-        points[index].setY(y);
     }
 }

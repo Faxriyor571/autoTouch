@@ -2,8 +2,10 @@ package core;
 
 import model.Coordinate;
 
-import java.awt.*;
+import java.awt.AWTException;
+import java.awt.Robot;
 import java.awt.event.InputEvent;
+import java.util.List;
 
 public class ClickService {
 
@@ -18,28 +20,19 @@ public class ClickService {
         }
     }
 
-    public Point getCurrentMousePosition() {
-        PointerInfo pointerInfo = MouseInfo.getPointerInfo();
-        return pointerInfo.getLocation();
-    }
-
-    public void clickAll(Coordinate[] points, int delayMillis) {
-        if (points == null) return;
-
-        for (Coordinate point : points) {
-            if (point.getX() == 0 && point.getY() == 0) continue;
-
-            clickAt(point.getX(), point.getY());
-
-            if (delayMillis > 0) {
-                robot.delay(delayMillis);
-            }
-        }
-    }
-
-    public void clickAt(int x, int y) {
-        robot.mouseMove(x, y);
+    public void clickAt(Coordinate coord) {
+        robot.mouseMove(coord.getX(), coord.getY());
         robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
         robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
+    }
+
+    public void clickAll(List<Coordinate> points, int delayMillis) {
+        if (points == null || points.isEmpty()) return;
+        for (Coordinate point : points) {
+            robot.mouseMove(point.getX(), point.getY());
+            robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
+            robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
+            if (delayMillis > 0) robot.delay(delayMillis);
+        }
     }
 }
