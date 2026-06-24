@@ -22,17 +22,33 @@ public class ClickService {
 
     public void clickAt(Coordinate coord) {
         robot.mouseMove(coord.getX(), coord.getY());
-        robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
-        robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
+        press();
     }
 
     public void clickAll(List<Coordinate> points, int delayMillis) {
         if (points == null || points.isEmpty()) return;
-        for (Coordinate point : points) {
+
+        int last = points.size() - 1;
+
+        for (int i = 0; i <= last; i++) {
+            Coordinate point = points.get(i);
             robot.mouseMove(point.getX(), point.getY());
-            robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
-            robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
-            if (delayMillis > 0) robot.delay(delayMillis);
+            press();
+
+            // Faqat nuqtalar ORASIDA kutamiz — oxirgi nuqtadan keyin emas
+            if (i < last && delayMillis > 0) {
+                try {
+                    Thread.sleep(delayMillis);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
         }
+    }
+
+    private void press() {
+        robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
+        robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
     }
 }
