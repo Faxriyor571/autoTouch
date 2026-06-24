@@ -38,24 +38,41 @@ public class TimerService {
     public void startCountdown(String targetTime,
                                Consumer<Long> onTick,
                                Consumer<Long> onReached) {
-        LocalTime target = parse(targetTime);
-        long targetNano  = target.toNanoOfDay();
+        LocalTime target     = parse(targetTime);
+        long      targetNano = target.toNanoOfDay();
 
         stopCountdown();
+
         countdownFuture = scheduler.scheduleAtFixedRate(() -> {
-            long nowNano     = LocalTime.now().toNanoOfDay();
-            long remainingMs = (targetNano - nowNano) / 1_000_000;
+
+            long remainingMs = (targetNano - LocalTime.now().toNanoOfDay()) / 1_000_000;
 
             if (remainingMs > 1) {
                 onTick.accept(remainingMs);
+
             } else if (remainingMs > -500) {
                 stopCountdown();
-                while (LocalTime.now().toNanoOfDay() < targetNano) {
+
+                // System.nanoTime() anchor:
+                // LocalTime.now() har chaqiruvda yangi obyekt → GC bosimi
+                // System.nanoTime() primitive long qaytaradi → GC yo'q
+                // Ikki soat bir xil emas — delta orqali o'tkazamiz
+                long anchorLocalNano = LocalTime.now().toNanoOfDay();
+                long anchorSysNano   = System.nanoTime();
+                long targetSysNano   = anchorSysNano + (targetNano - anchorLocalNano);
+
+                // Sof busy-wait — GC yo'q
+                while (System.nanoTime() < targetSysNano) {
                     Thread.onSpinWait();
                 }
-                long delayMs = (LocalTime.now().toNanoOfDay() - targetNano) / 1_000_000;
+
+                // Kechikish
+                long delayMs = Math.max(0,
+                        (System.nanoTime() - targetSysNano) / 1_000_000L);
+
                 onReached.accept(delayMs);
             }
+
         }, 0, 1, TimeUnit.MILLISECONDS);
     }
 
