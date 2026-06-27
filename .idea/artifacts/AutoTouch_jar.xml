@@ -3,7 +3,7 @@
     <output-path>$PROJECT_DIR$/out/artifacts/AutoTouch_jar</output-path>
     <root id="archive" name="AutoTouch.jar">
       <element id="module-output" name="AutoTouch" />
-      <element id="extracted-dir" path="$USER_HOME$/Downloads/jnativehook-2.2.2.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/jnativehook-2.2.2.jar" path-in-jar="/" />
     </root>
   </artifact>
 </component>
