@@ -105,7 +105,9 @@ public class MainWindow extends JFrame {
                 clockLabel.setText(time);
                 TimeSyncSnapshot sync = timeSyncService.getSnapshot();
                 if (sync.isUsable()) {
-                    uzexClockLabel.setText(sync.serverNow().format(TIME_FORMATTER));
+                    uzexClockLabel.setText(
+                            sync.conservativeServerNow().format(TIME_FORMATTER)
+                    );
                 }
             });
         }, () -> criticalTiming);
@@ -272,12 +274,17 @@ public class MainWindow extends JFrame {
                 sync.status() + (sync.hubConnected() ? "  •  SIGNALR ONLINE" : "  •  HTTP")
         );
 
-        if (sync.sampleCount() > 0) {
+                if (sync.sampleCount() > 0) {
             syncMetricsLabel.setText(String.format(
                     "Offset: %+.1f ms  |  min RTT: %.1f ms  |  Jitter: %.1f ms  |  ±%.1f ms",
                     sync.offsetMillis(), sync.minRttMillis(),
                     sync.jitterMillis(), sync.uncertaintyMillis()
             ));
+            if (sync.isUsable()) {
+                uzexClockLabel.setText(
+                        sync.conservativeServerNow().format(TIME_FORMATTER)
+                );
+            }
         } else {
             syncMetricsLabel.setText(sync.message());
         }
@@ -584,7 +591,7 @@ public class MainWindow extends JFrame {
                     "Vaqt sinxronlanmagan", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        if (!targetTime.isAfter(armedSync.serverNow().toLocalTime())) {
+        if (!targetTime.isAfter(armedSync.conservativeServerNow().toLocalTime())) {
             JOptionPane.showMessageDialog(this,
                     "Belgilangan UZEX vaqti o'tib ketgan. Kelajak vaqtini kiriting.",
                     "Vaqt o'tib ketgan", JOptionPane.WARNING_MESSAGE);

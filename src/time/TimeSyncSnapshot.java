@@ -53,6 +53,13 @@ public record TimeSyncSnapshot(
         return fromEpochNanos(serverEpochNanosNow()).atZone(UZEX_ZONE);
     }
 
+    public ZonedDateTime conservativeServerNow() {
+        long displayBiasNanos = estimatedOutboundLatencyNanos()
+                + Math.round(Math.max(0.0, uncertaintyMillis) * 1_000_000.0)
+                + 250_000_000L;
+        return fromEpochNanos(serverEpochNanosNow() - displayBiasNanos).atZone(UZEX_ZONE);
+    }
+
     public long targetNanoTime(LocalTime targetTime, boolean compensateNetwork) {
         return targetNanoTime(
                 targetServerEpochNanos(targetTime),
