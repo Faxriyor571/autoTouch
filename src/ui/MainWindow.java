@@ -5,11 +5,20 @@ import core.CoordinateService;
 import core.HotkeyService;
 import core.TimerService;
 import model.Coordinate;
+import result.AdaptiveLatencyModel;
+import result.ResultObservation;
+import result.ResultObserverService;
+import time.TimeSyncSnapshot;
+import time.UzexTimeSyncService;
 
 import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.time.Instant;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 public class MainWindow extends JFrame {
@@ -33,7 +42,11 @@ public class MainWindow extends JFrame {
             new Color(180, 100, 255)
     };
 
-    private static final int CLICK_DELAY_MS = 150;
+    // Bitta sichqoncha parallel bosa olmaydi, lekin 0 ms interval barcha
+    // nuqtalarni imkon qadar tez ketma-ket bosadi.
+    private static final int CLICK_DELAY_MS = 0;
+    private static final DateTimeFormatter TIME_FORMATTER =
+            DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
 
     private static Font sf(int style, int size) {
         return new Font("Segoe UI", style, size);
@@ -43,11 +56,22 @@ public class MainWindow extends JFrame {
     private final TimerService      timerService;
     private final ClickService      clickService;
     private final HotkeyService     hotkeyService;
+    private final UzexTimeSyncService timeSyncService;
+    private final ResultObserverService resultObserverService;
+    private final AdaptiveLatencyModel adaptiveLatencyModel;
 
     private enum State { STOPPED, WAITING, RUNNING }
     private State currentState = State.STOPPED;
+    private volatile boolean criticalTiming;
 
     private JLabel     clockLabel;
+    private JLabel     uzexClockLabel;
+    private JLabel     syncStatusLabel;
+    private JLabel     syncMetricsLabel;
+    private JLabel     observerStatusLabel;
+    private JLabel     adaptiveStatusLabel;
+    private JCheckBox  networkCompensationCheck;
+    private volatile ResultObservation lastResultObservation;
     private JTextField targetTimeField;
     private JLabel     countdownLabel;
     private JLabel     statusDot;
@@ -60,18 +84,39 @@ public class MainWindow extends JFrame {
     public MainWindow(CoordinateService coordinateService,
                       TimerService      timerService,
                       ClickService      clickService,
-                      HotkeyService     hotkeyService) {
+                      HotkeyService     hotkeyService,
+                      UzexTimeSyncService timeSyncService,
+                      ResultObserverService resultObserverService,
+                      AdaptiveLatencyModel adaptiveLatencyModel) {
         this.coordinateService = coordinateService;
         this.timerService      = timerService;
         this.clickService      = clickService;
         this.hotkeyService     = hotkeyService;
+        this.timeSyncService   = timeSyncService;
+        this.resultObserverService = resultObserverService;
+        this.adaptiveLatencyModel = adaptiveLatencyModel;
 
         setupWindow();
         buildUI();
 
-        timerService.startClock(time ->
-                SwingUtilities.invokeLater(() -> clockLabel.setText(time))
-        );
+        timerService.startClock(time -> {
+            if (criticalTiming) return;
+            SwingUtilities.invokeLater(() -> {
+                clockLabel.setText(time);
+                TimeSyncSnapshot sync = timeSyncService.getSnapshot();
+                if (sync.isUsable()) {
+                    uzexClockLabel.setText(sync.serverNow().format(TIME_FORMATTER));
+                }
+            });
+        }, () -> criticalTiming);
+
+        timeSyncService.start(sync -> {
+            if (!criticalTiming) {
+                SwingUtilities.invokeLater(() -> updateSyncUi(sync));
+            }
+        });
+
+        startResultObserver();
 
         hotkeyService.setUiCallback(ignored -> {
             System.out.println("[UI] refreshPointsPanel() chaqirildi");
@@ -82,8 +127,8 @@ public class MainWindow extends JFrame {
 
     private void setupWindow() {
         setTitle("Auto_Click");
-        setSize(500, 800);
-        setMinimumSize(new Dimension(440, 680));
+        setSize(540, 940);
+        setMinimumSize(new Dimension(480, 760));
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         getContentPane().setBackground(BG_DARK);
@@ -92,6 +137,8 @@ public class MainWindow extends JFrame {
             public void windowClosing(WindowEvent e) {
                 hotkeyService.stop();
                 timerService.shutdown();
+                timeSyncService.shutdown();
+                resultObserverService.shutdown();
             }
         });
     }
@@ -107,6 +154,7 @@ public class MainWindow extends JFrame {
 
         content.add(buildHeader());        content.add(gap(14));
         content.add(buildClockCard());     content.add(gap(10));
+        content.add(buildSyncCard());      content.add(gap(10));
         content.add(buildTargetCard());    content.add(gap(10));
         content.add(buildPointsCard());    content.add(gap(10));
         content.add(buildStatusCard());    content.add(gap(10));
@@ -134,14 +182,14 @@ public class MainWindow extends JFrame {
         title.setFont(sf(Font.BOLD, 22));
         title.setForeground(TEXT_PRIMARY);
         p.add(title, BorderLayout.WEST);
-        p.add(makePill("v2.0", ACCENT_BLUE), BorderLayout.EAST);
+        p.add(makePill("v3.0", ACCENT_BLUE), BorderLayout.EAST);
         return p;
     }
 
     private JPanel buildClockCard() {
         JPanel card = makeCard();
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.add(makeLabel("JORIY VAQT"));
+        card.add(makeLabel("LOKAL KOMPYUTER VAQTI"));
         card.add(gap(6));
         clockLabel = new JLabel("00:00:00.000");
         clockLabel.setFont(new Font("Monospaced", Font.BOLD, 32));
@@ -151,10 +199,145 @@ public class MainWindow extends JFrame {
         return card;
     }
 
+    private JPanel buildSyncCard() {
+        JPanel card = makeCard();
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.add(makeLabel("UZEX SERVER VAQTI"));
+        card.add(gap(6));
+
+        uzexClockLabel = new JLabel("--:--:--.---");
+        uzexClockLabel.setFont(new Font("Monospaced", Font.BOLD, 28));
+        uzexClockLabel.setForeground(ACCENT_GREEN);
+        uzexClockLabel.setAlignmentX(LEFT_ALIGNMENT);
+        card.add(uzexClockLabel);
+        card.add(gap(6));
+
+        syncStatusLabel = new JLabel("SINXRONLANMOQDA...");
+        syncStatusLabel.setFont(sf(Font.BOLD, 12));
+        syncStatusLabel.setForeground(ACCENT_AMBER);
+        syncStatusLabel.setAlignmentX(LEFT_ALIGNMENT);
+        card.add(syncStatusLabel);
+
+        syncMetricsLabel = new JLabel("Offset: —  |  RTT: —  |  Jitter: —");
+        syncMetricsLabel.setFont(sf(Font.PLAIN, 11));
+        syncMetricsLabel.setForeground(TEXT_MUTED);
+        syncMetricsLabel.setAlignmentX(LEFT_ALIGNMENT);
+        card.add(syncMetricsLabel);
+        card.add(gap(7));
+
+        observerStatusLabel = new JLabel("BROWSER EXTENSION: OFFLINE");
+        observerStatusLabel.setFont(sf(Font.BOLD, 11));
+        observerStatusLabel.setForeground(ACCENT_AMBER);
+        observerStatusLabel.setAlignmentX(LEFT_ALIGNMENT);
+        card.add(observerStatusLabel);
+
+        adaptiveStatusLabel = new JLabel("Adaptive: 3 ta real natija kutilmoqda");
+        adaptiveStatusLabel.setFont(sf(Font.PLAIN, 11));
+        adaptiveStatusLabel.setForeground(TEXT_MUTED);
+        adaptiveStatusLabel.setAlignmentX(LEFT_ALIGNMENT);
+        card.add(adaptiveStatusLabel);
+        card.add(gap(7));
+
+        networkCompensationCheck = new JCheckBox(
+                "Serverga yetib borish vaqtini kompensatsiya qilish",
+                true
+        );
+        networkCompensationCheck.setOpaque(false);
+        networkCompensationCheck.setForeground(TEXT_PRIMARY);
+        networkCompensationCheck.setFont(sf(Font.PLAIN, 11));
+        networkCompensationCheck.setFocusPainted(false);
+        networkCompensationCheck.setAlignmentX(LEFT_ALIGNMENT);
+        card.add(networkCompensationCheck);
+        return card;
+    }
+
+    private void updateSyncUi(TimeSyncSnapshot sync) {
+        Color color = switch (sync.status()) {
+            case SYNCED -> ACCENT_GREEN;
+            case DEGRADED, CALIBRATING -> ACCENT_AMBER;
+            case DISCONNECTED -> ACCENT_RED;
+        };
+        syncStatusLabel.setForeground(color);
+        syncStatusLabel.setText(
+                sync.status() + (sync.hubConnected() ? "  •  SIGNALR ONLINE" : "  •  HTTP")
+        );
+
+        if (sync.sampleCount() > 0) {
+            syncMetricsLabel.setText(String.format(
+                    "Offset: %+.1f ms  |  min RTT: %.1f ms  |  Jitter: %.1f ms  |  ±%.1f ms",
+                    sync.offsetMillis(), sync.minRttMillis(),
+                    sync.jitterMillis(), sync.uncertaintyMillis()
+            ));
+        } else {
+            syncMetricsLabel.setText(sync.message());
+        }
+    }
+
+    private void startResultObserver() {
+        adaptiveLatencyModel.addListener(adaptive ->
+                SwingUtilities.invokeLater(() -> updateAdaptiveUi(adaptive))
+        );
+        try {
+            resultObserverService.start(observation -> {
+                lastResultObservation = observation;
+                adaptiveLatencyModel.observe(observation);
+                if (!criticalTiming) {
+                    SwingUtilities.invokeLater(this::updateObserverUi);
+                }
+            });
+        } catch (RuntimeException error) {
+            observerStatusLabel.setText("OBSERVER XATOSI: " + error.getMessage());
+            observerStatusLabel.setForeground(ACCENT_RED);
+        }
+
+        new javax.swing.Timer(1_000, event -> {
+            if (!criticalTiming) updateObserverUi();
+        }).start();
+    }
+
+    private void updateObserverUi() {
+        if (!resultObserverService.isExtensionOnline()) {
+            observerStatusLabel.setText("BROWSER EXTENSION: OFFLINE");
+            observerStatusLabel.setForeground(ACCENT_AMBER);
+            return;
+        }
+
+        ResultObservation observation = lastResultObservation;
+        if (observation != null
+                && observation.observedAt().plusSeconds(20).isAfter(Instant.now())) {
+            observerStatusLabel.setText(
+                    "NATIJA: " + observation.method() + " " + observation.path()
+                            + (observation.hasServerTimestamp()
+                            ? "  •  TIME TOPILDI"
+                            : "  •  TIME YO'Q")
+            );
+        } else {
+            observerStatusLabel.setText("BROWSER EXTENSION: ONLINE");
+        }
+        observerStatusLabel.setForeground(ACCENT_GREEN);
+    }
+
+    private void updateAdaptiveUi(AdaptiveLatencyModel.AdaptiveSnapshot adaptive) {
+        if (adaptive.active()) {
+            adaptiveStatusLabel.setText(String.format(
+                    "Adaptive lead: %+.3f ms  |  %d sample  |  MAD %.3f ms",
+                    adaptive.correctionMillis(),
+                    adaptive.sampleCount(),
+                    adaptive.madMillis()
+            ));
+            adaptiveStatusLabel.setForeground(ACCENT_GREEN);
+        } else {
+            adaptiveStatusLabel.setText(
+                    "Adaptive: " + adaptive.sampleCount() + "/3 real natija"
+            );
+            adaptiveStatusLabel.setForeground(TEXT_MUTED);
+        }
+    }
+
     private JPanel buildTargetCard() {
         JPanel card = makeCard();
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.add(makeLabel("MAQSAD VAQT  (HH:mm:ss.SSS)"));
+        card.add(makeLabel("UZEX MAQSAD VAQTI  (HH:mm:ss.SSS)"));
         card.add(gap(8));
         targetTimeField = new JTextField("12:00:00.000");
         targetTimeField.setFont(new Font("Monospaced", Font.PLAIN, 20));
@@ -261,7 +444,7 @@ public class MainWindow extends JFrame {
         p.setPreferredSize(new Dimension(0, 22));
         p.setAlignmentX(LEFT_ALIGNMENT);
         JLabel l = new JLabel("Auto Touch Pro  —  Professional Edition");
-        JLabel r = new JLabel("v2.0");
+        JLabel r = new JLabel("v3.0");
         l.setFont(sf(Font.PLAIN, 11)); l.setForeground(TEXT_MUTED);
         r.setFont(sf(Font.PLAIN, 11)); r.setForeground(TEXT_MUTED);
         p.add(l, BorderLayout.WEST);
@@ -376,46 +559,141 @@ public class MainWindow extends JFrame {
             return;
         }
         String targetText = targetTimeField.getText().trim();
+        LocalTime targetTime;
         try {
-            TimerService.parse(targetText);
+            targetTime = TimerService.parse(targetText);
         } catch (IllegalArgumentException ex) {
             JOptionPane.showMessageDialog(this,
                     ex.getMessage(), "Xato", JOptionPane.ERROR_MESSAGE);
             return;
         }
+        TimeSyncSnapshot armedSync = timeSyncService.getSnapshot();
+        if (!armedSync.isUsable()) {
+            JOptionPane.showMessageDialog(this,
+                    "UZEX vaqti hali sinxronlanmagan. SYNCED holatini kuting.",
+                    "Vaqt sinxronlanmagan", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (!targetTime.isAfter(armedSync.serverNow().toLocalTime())) {
+            JOptionPane.showMessageDialog(this,
+                    "Belgilangan UZEX vaqti o'tib ketgan. Kelajak vaqtini kiriting.",
+                    "Vaqt o'tib ketgan", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // F1 orqali ro'yxat o'zgarib qolmasligi uchun start paytidagi nusxa.
+        List<Coordinate> pointsToClick = List.copyOf(coordinateService.getAll());
+        boolean compensateNetwork = networkCompensationCheck.isSelected();
+        long targetServerEpochNanos = armedSync.targetServerEpochNanos(targetTime);
+        long adaptiveCorrectionNanos = adaptiveLatencyModel.correctionNanos();
+        long firstTargetNano = armedSync.targetNanoTime(
+                targetServerEpochNanos,
+                compensateNetwork
+        ) - adaptiveCorrectionNanos;
+        if (firstTargetNano - System.nanoTime() < 250_000_000L) {
+            JOptionPane.showMessageDialog(this,
+                    "Target juda yaqin. Kamida 300 ms oldin BOSHLASH tugmasini bosing.",
+                    "Target juda yaqin", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        adaptiveLatencyModel.arm(targetServerEpochNanos);
         setState(State.WAITING);
+        criticalTiming = false;
         resultLabel.setText("—");
         resultLabel.setForeground(TEXT_MUTED);
-        timerService.startCountdown(
-                targetText,
-                remainingMs -> SwingUtilities.invokeLater(() ->
-                        countdownLabel.setText(TimerService.formatRemainingMs(remainingMs))
-                ),
-                delayMs -> SwingUtilities.invokeLater(() -> {
-                    setState(State.RUNNING);
-                    countdownLabel.setText("00:00.000");
-                    new Thread(() -> {
-                        clickService.clickAll(coordinateService.getAll(), CLICK_DELAY_MS);
-                        String triggerTime = TimerService.formatNow();
+        timerService.startCountdownDynamic(
+                () -> {
+                    TimeSyncSnapshot latest = timeSyncService.getSnapshot();
+                    TimeSyncSnapshot usable = latest.isUsable() ? latest : armedSync;
+                    return usable.targetNanoTime(
+                            targetServerEpochNanos,
+                            compensateNetwork
+                    ) - adaptiveCorrectionNanos;
+                },
+                remainingMs -> {
+                    if (remainingMs <= 200) {
+                        criticalTiming = true;
+                        return;
+                    }
+                    SwingUtilities.invokeLater(() ->
+                            countdownLabel.setText(TimerService.formatRemainingMs(remainingMs))
+                    );
+                },
+                () -> {
+                    criticalTiming = true;
+                    clickService.prepareFirstClick(pointsToClick.get(0));
+                },
+                timerDelayMs -> {
+                    // Bu callback precision thread'da ishlaydi. Uni UI navbatiga
+                    // yuborish yoki yangi thread ochish real clickni kechiktiradi.
+                    ClickService.ClickReport report;
+                    try {
+                        report = clickService.clickAllPrepared(
+                                pointsToClick,
+                                CLICK_DELAY_MS
+                        );
+                    } catch (RuntimeException clickError) {
+                        criticalTiming = false;
                         SwingUtilities.invokeLater(() -> {
                             setState(State.STOPPED);
                             countdownLabel.setText("--:--.---");
-                            resultLabel.setForeground(
-                                    delayMs <= 5  ? ACCENT_GREEN :
-                                            delayMs <= 20 ? ACCENT_AMBER : ACCENT_RED
-                            );
-                            resultLabel.setText(
-                                    "Trigger: " + triggerTime +
-                                            "   |   Kechikish: " + delayMs + " ms"
-                            );
+                            resultLabel.setForeground(ACCENT_RED);
+                            resultLabel.setText("Click xatosi: " + clickError.getMessage());
                         });
-                    }).start();
-                })
+                        return;
+                    }
+                    criticalTiming = false;
+
+                    TimeSyncSnapshot resultSync = timeSyncService.getSnapshot();
+                    if (!resultSync.isUsable()) resultSync = armedSync;
+                    long dispatchServerEpochNanos = resultSync.estimatedServerEpochNanos(
+                            report.firstClickNanoTime()
+                    );
+                    long predictedArrivalEpochNanos = dispatchServerEpochNanos
+                            + (compensateNetwork
+                            ? resultSync.estimatedOutboundLatencyNanos()
+                            : 0L);
+                    double arrivalDeltaMs =
+                            (predictedArrivalEpochNanos - targetServerEpochNanos) / 1_000_000.0;
+                    double clickBurstMs = Math.max(0,
+                            report.lastClickNanoTime()
+                                    - report.firstClickNanoTime()) / 1_000_000.0;
+                    Instant firstClickInstant = report.wallClockAnchor().minusNanos(
+                            report.wallClockAnchorNanoTime()
+                                    - report.firstClickNanoTime()
+                    );
+                    String firstClickTime = firstClickInstant
+                            .atZone(ZoneId.systemDefault())
+                            .format(TIME_FORMATTER);
+                    String serverDispatchTime = TimeSyncSnapshot
+                            .fromEpochNanos(dispatchServerEpochNanos)
+                            .atZone(TimeSyncSnapshot.UZEX_ZONE)
+                            .format(TIME_FORMATTER);
+
+                    SwingUtilities.invokeLater(() -> {
+                        setState(State.STOPPED);
+                        countdownLabel.setText("--:--.---");
+                        double absoluteDeltaMs = Math.abs(arrivalDeltaMs);
+                        resultLabel.setForeground(
+                                absoluteDeltaMs <= 5  ? ACCENT_GREEN :
+                                        absoluteDeltaMs <= 20 ? ACCENT_AMBER : ACCENT_RED
+                        );
+                        resultLabel.setText(String.format(
+                                "<html>Lokal click: %s &nbsp;|&nbsp; UZEX: %s"
+                                        + "<br>Taxminiy server arrival farqi: %+.3f ms"
+                                        + "<br>%d ta bosish davomiyligi: %.3f ms</html>",
+                                firstClickTime, serverDispatchTime, arrivalDeltaMs,
+                                report.clickCount(), clickBurstMs
+                        ));
+                    });
+                }
         );
     }
 
     private void onStop() {
         timerService.stopCountdown();
+        criticalTiming = false;
         setState(State.STOPPED);
         countdownLabel.setText("--:--.---");
     }
@@ -424,6 +702,7 @@ public class MainWindow extends JFrame {
         currentState = state;
         startBtn.setEnabled(state == State.STOPPED);
         stopBtn.setEnabled(state  != State.STOPPED);
+        networkCompensationCheck.setEnabled(state == State.STOPPED);
         switch (state) {
             case STOPPED:
                 statusLabel.setText("TO'XTAGAN");

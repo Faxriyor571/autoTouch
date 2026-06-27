@@ -4,27 +4,62 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import java.util.function.LongSupplier;
 
 public class TimerService {
 
     private static final DateTimeFormatter FORMATTER =
             DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
+    private static final long COUNTDOWN_TICK_MS = 25;
+    private static final long PRECISION_UI_TICK_MS = 10;
 
     private final ScheduledExecutorService scheduler =
             Executors.newScheduledThreadPool(2);
+    private final ThreadPoolExecutor precisionExecutor;
 
     private ScheduledFuture<?> clockFuture;
     private volatile ScheduledFuture<?> countdownFuture;
+    private volatile Future<?> precisionFuture;
+    private final AtomicLong countdownGeneration = new AtomicLong();
+
+    public TimerService() {
+        precisionExecutor = new ThreadPoolExecutor(
+                1,
+                1,
+                0,
+                TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<>(),
+                runnable -> {
+                    Thread thread = new Thread(runnable, "precision-trigger-thread");
+                    thread.setPriority(Thread.MAX_PRIORITY);
+                    thread.setDaemon(true);
+                    return thread;
+                }
+        );
+        // Critical vaqtga yaqin yangi OS thread yaratish jitterini yo'qotadi.
+        precisionExecutor.prestartAllCoreThreads();
+    }
 
     // ─── CLOCK ───────────────────────────────────────────────────
 
     public void startClock(Consumer<String> onTick) {
+        startClock(onTick, () -> false);
+    }
+
+    public void startClock(Consumer<String> onTick,
+                           BooleanSupplier paused) {
         stopClock();
         clockFuture = scheduler.scheduleAtFixedRate(() -> {
+            if (paused.getAsBoolean()) return;
             String time = LocalTime.now().format(FORMATTER);
             onTick.accept(time);
         }, 0, 50, TimeUnit.MILLISECONDS);
@@ -39,41 +74,66 @@ public class TimerService {
 
     // ─── COUNTDOWN ───────────────────────────────────────────────
 
-    public void startCountdown(String targetTime,
-                               Consumer<Long> onTick,
-                               Consumer<Long> onReached) {
-        LocalTime target     = parse(targetTime);
-        long      targetNano = target.toNanoOfDay();
+    public void startCountdownAt(long targetNanoTime,
+                                 Consumer<Long> onTick,
+                                 Runnable onPrepare,
+                                 Consumer<Long> onReached) {
+        startCountdownDynamic(() -> targetNanoTime, onTick, onPrepare, onReached);
+    }
+
+    public void startCountdownDynamic(LongSupplier targetNanoTimeSupplier,
+                                      Consumer<Long> onTick,
+                                      Runnable onPrepare,
+                                      Consumer<Long> onReached) {
 
         stopCountdown();
+        long generation = countdownGeneration.incrementAndGet();
 
         // Faza 1: Scheduler — 200ms qolguncha
         countdownFuture = scheduler.scheduleAtFixedRate(() -> {
+            if (generation != countdownGeneration.get()) return;
 
-            long remainingMs = (targetNano - LocalTime.now().toNanoOfDay()) / 1_000_000;
+            long targetNanoTime = targetNanoTimeSupplier.getAsLong();
+            long remainingMs =
+                    (targetNanoTime - System.nanoTime()) / 1_000_000;
 
             if (remainingMs > 200) {
                 onTick.accept(remainingMs);
 
-            } else if (remainingMs >= 0) {
+            } else {
                 // 200ms qoldi — schedulerni to'xtatib precision thread ishga tushiramiz
-                stopCountdown();
-                launchPrecisionThread(targetNano, onTick, onReached);
+                cancelScheduledCountdown();
+                launchPrecisionThread(
+                        generation,
+                        targetNanoTime,
+                        onTick,
+                        onPrepare,
+                        onReached
+                );
             }
 
-        }, 0, 1, TimeUnit.MILLISECONDS);
+        }, 0, COUNTDOWN_TICK_MS, TimeUnit.MILLISECONDS);
     }
 
-    private void launchPrecisionThread(long targetNano,
+    private void launchPrecisionThread(long generation,
+                                       long targetNanoTime,
                                        Consumer<Long> onTick,
+                                       Runnable onPrepare,
                                        Consumer<Long> onReached) {
-        Thread t = new Thread(() -> {
+        Runnable precisionTask = () -> {
 
             // Faza 2: Thread.sleep(1) — 20ms qolguncha
+            long lastReportedMs = Long.MAX_VALUE;
             while (true) {
-                long remainingMs = (targetNano - LocalTime.now().toNanoOfDay()) / 1_000_000;
+                if (isCancelled(generation)) return;
+                long remainingMs =
+                        (targetNanoTime - System.nanoTime()) / 1_000_000;
                 if (remainingMs <= 20) break;
-                onTick.accept(remainingMs);
+                if (lastReportedMs == Long.MAX_VALUE
+                        || lastReportedMs - remainingMs >= PRECISION_UI_TICK_MS) {
+                    onTick.accept(remainingMs);
+                    lastReportedMs = remainingMs;
+                }
                 try {
                     Thread.sleep(1);
                 } catch (InterruptedException e) {
@@ -81,36 +141,52 @@ public class TimerService {
                 }
             }
 
-            // Faza 3: System.nanoTime busy-wait — oxirgi 20ms
-            // LocalTime.now() obyekt yaratadi → GC bosimi
-            // System.nanoTime() primitive long qaytaradi → GC yo'q
-            long anchorLocalNano = LocalTime.now().toNanoOfDay();
-            long anchorSysNano   = System.nanoTime();
-            long targetSysNano   = anchorSysNano + (targetNano - anchorLocalNano);
+            // Critical window: UI yangilanmaydi, birinchi click joyi tayyorlanadi.
+            if (isCancelled(generation)) return;
+            onPrepare.run();
 
-            while (System.nanoTime() < targetSysNano) {
+            // Faza 3: server vaqti bilan anchor qilingan monotonic clock.
+            while (System.nanoTime() < targetNanoTime) {
+                if (isCancelled(generation)) return;
                 Thread.onSpinWait();
             }
 
             // Kechikish
             long delayMs = Math.max(0,
-                    (System.nanoTime() - targetSysNano) / 1_000_000L);
+                    (System.nanoTime() - targetNanoTime) / 1_000_000L);
 
-            onReached.accept(delayMs);
+            if (!isCancelled(generation)) {
+                onReached.accept(delayMs);
+            }
 
-        }, "precision-trigger-thread");
+        };
 
-        t.setPriority(Thread.MAX_PRIORITY);
-        t.setDaemon(true);
-        t.start();
+        if (generation != countdownGeneration.get()) return;
+        precisionFuture = precisionExecutor.submit(precisionTask);
     }
 
     public void stopCountdown() {
+        countdownGeneration.incrementAndGet();
+        cancelScheduledCountdown();
+
+        Future<?> f = precisionFuture;
+        if (f != null) {
+            f.cancel(true);
+            precisionFuture = null;
+        }
+    }
+
+    private void cancelScheduledCountdown() {
         ScheduledFuture<?> f = countdownFuture;
         if (f != null && !f.isCancelled()) {
             f.cancel(false);
             countdownFuture = null;
         }
+    }
+
+    private boolean isCancelled(long generation) {
+        return Thread.currentThread().isInterrupted()
+                || generation != countdownGeneration.get();
     }
 
     // ─── LIFECYCLE ───────────────────────────────────────────────
@@ -119,6 +195,7 @@ public class TimerService {
         stopClock();
         stopCountdown();
         scheduler.shutdownNow();
+        precisionExecutor.shutdownNow();
     }
 
     // ─── HELPERS ─────────────────────────────────────────────────
