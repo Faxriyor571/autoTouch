@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,6 +28,8 @@ public class ResultObserverService {
     private final String sessionToken;
     private final CopyOnWriteArrayList<Consumer<ResultObservation>> listeners =
             new CopyOnWriteArrayList<>();
+    private volatile String lastClockText = "";
+    private volatile Instant lastClockObservedAt;
     private HttpServer server;
     private ExecutorService observerExecutor;
     private volatile Instant lastExtensionSeen;
@@ -47,6 +50,7 @@ public class ResultObserverService {
             );
             server.createContext("/session", this::handleSession);
             server.createContext("/event", this::handleEvent);
+            server.createContext("/clock", this::handleClock);
             observerExecutor = Executors.newFixedThreadPool(2, runnable -> {
                 Thread thread = new Thread(runnable, "result-observer-http");
                 thread.setDaemon(true);
@@ -69,6 +73,14 @@ public class ResultObserverService {
 
     public Instant getLastExtensionSeen() {
         return lastExtensionSeen;
+    }
+
+    public String getLastClockText() {
+        return lastClockText;
+    }
+
+    public Instant getLastClockObservedAt() {
+        return lastClockObservedAt;
     }
 
     private void handleSession(HttpExchange exchange) throws IOException {
@@ -125,6 +137,36 @@ public class ResultObserverService {
             } catch (RuntimeException ignored) {
             }
         }
+        send(exchange, 204, "");
+    }
+
+    private void handleClock(HttpExchange exchange) throws IOException {
+        if (handleCorsPreflight(exchange)) return;
+        if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())
+                || !isAllowedOrigin(exchange)) {
+            send(exchange, 403, "forbidden");
+            return;
+        }
+
+        String providedToken = exchange.getRequestHeaders()
+                .getFirst("X-AutoTouch-Session");
+        if (providedToken == null || !MessageDigest.isEqual(
+                providedToken.getBytes(StandardCharsets.UTF_8),
+                sessionToken.getBytes(StandardCharsets.UTF_8))) {
+            send(exchange, 401, "unauthorized");
+            return;
+        }
+
+        byte[] body = exchange.getRequestBody().readNBytes(MAX_EVENT_BYTES + 1);
+        if (body.length > MAX_EVENT_BYTES) {
+            send(exchange, 413, "too large");
+            return;
+        }
+
+        Map<String, String> form = parseForm(new String(body, StandardCharsets.UTF_8));
+        lastClockText = clean(form.get("text"), 64);
+        lastClockObservedAt = instantFromMillis(form.get("observedAtEpochMs"));
+        lastExtensionSeen = Instant.now();
         send(exchange, 204, "");
     }
 

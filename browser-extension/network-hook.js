@@ -4,10 +4,11 @@
   window.__autoTouchUzexObserverInstalled = true;
 
   const EVENT_NAME = "autotouch-uzex-result";
+  const CLOCK_EVENT_NAME = "autotouch-uzex-clock";
   const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
   const STRONG_KEY = /(accept|register|create|order|trade|deal|transaction|auction|request|application)/i;
   const TIME_KEY = /(time|date|timestamp|moment|at$)/i;
-  const RESULT_KEYWORDS = /(accept|accepted|registered|confirmed|success|successfully|order|trade|deal|qabul|buyurtma|bitim|принят|сделан|tasdiq|yuborildi)/i;
+  const RESULT_KEYWORDS = /(accept|accepted|registered|confirmed|success|successfully|order|trade|deal|qabul|buyurtma|bitim|tasdiq|yuborildi|qabul qilindi)/i;
   const seenSignals = new Map();
 
   function pageDate() {
@@ -225,7 +226,22 @@
 
   function installDomObserver() {
     if (!document.documentElement) return;
-    const resultWords = /(accept|accepted|register|order|trade|deal|qabul|buyurtma|bitim|заявк|сделк|принят)/i;
+    const resultWords = /(accept|accepted|register|order|trade|deal|qabul|buyurtma|bitim|tasdiq|yuborildi|success|confirmed|qabul qilindi)/i;
+    let lastClockText = "";
+
+    const emitClock = () => {
+      const text = String(document.querySelector("#clock-label")?.textContent || "").trim();
+      if (!text || text === lastClockText) return;
+      lastClockText = text;
+      window.dispatchEvent(new CustomEvent(CLOCK_EVENT_NAME, {
+        detail: {
+          text,
+          observedAtEpochMs: Date.now(),
+          path: location.pathname.slice(0, 300)
+        }
+      }));
+    };
+
     const observer = new MutationObserver(mutations => {
       let checked = 0;
       for (const mutation of mutations) {
@@ -242,8 +258,11 @@
           }, text);
         }
       }
+      emitClock();
     });
     observer.observe(document.documentElement, { childList: true, subtree: true });
+    emitClock();
+    setInterval(emitClock, 500);
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", installDomObserver, { once: true });

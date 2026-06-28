@@ -104,7 +104,10 @@ public class MainWindow extends JFrame {
             SwingUtilities.invokeLater(() -> {
                 clockLabel.setText(time);
                 TimeSyncSnapshot sync = timeSyncService.getSnapshot();
-                if (sync.isUsable()) {
+                String liveClock = resultObserverService.getLastClockText();
+                if (liveClock != null && !liveClock.isBlank()) {
+                    uzexClockLabel.setText(liveClock);
+                } else if (sync.isUsable()) {
                     uzexClockLabel.setText(
                             sync.conservativeServerNow().format(TIME_FORMATTER)
                     );
@@ -274,13 +277,16 @@ public class MainWindow extends JFrame {
                 sync.status() + (sync.hubConnected() ? "  •  SIGNALR ONLINE" : "  •  HTTP")
         );
 
-                if (sync.sampleCount() > 0) {
+        if (sync.sampleCount() > 0) {
             syncMetricsLabel.setText(String.format(
                     "Offset: %+.1f ms  |  min RTT: %.1f ms  |  Jitter: %.1f ms  |  ±%.1f ms",
                     sync.offsetMillis(), sync.minRttMillis(),
                     sync.jitterMillis(), sync.uncertaintyMillis()
             ));
-            if (sync.isUsable()) {
+            String liveClock = resultObserverService.getLastClockText();
+            if (liveClock != null && !liveClock.isBlank()) {
+                uzexClockLabel.setText(liveClock);
+            } else if (sync.isUsable()) {
                 uzexClockLabel.setText(
                         sync.conservativeServerNow().format(TIME_FORMATTER)
                 );
