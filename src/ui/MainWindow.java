@@ -240,7 +240,7 @@ public class MainWindow extends JFrame {
         syncMetricsLabel.setAlignmentX(LEFT_ALIGNMENT);
         card.add(syncMetricsLabel);
 
-        adaptiveBiasLabel = new JLabel("Adaptive bias: —");
+        adaptiveBiasLabel = new JLabel("Adaptive bias: --");
         adaptiveBiasLabel.setFont(sf(Font.PLAIN, 11));
         adaptiveBiasLabel.setForeground(TEXT_MUTED);
         adaptiveBiasLabel.setAlignmentX(LEFT_ALIGNMENT);
