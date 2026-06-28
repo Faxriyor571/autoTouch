@@ -69,6 +69,7 @@ public class MainWindow extends JFrame {
     private JLabel     syncStatusLabel;
     private JLabel     syncMetricsLabel;
     private JLabel     observerStatusLabel;
+    private JLabel     adaptiveBiasLabel;
     private JLabel     adaptiveStatusLabel;
     private JCheckBox  networkCompensationCheck;
     private volatile ResultObservation lastResultObservation;
@@ -238,6 +239,12 @@ public class MainWindow extends JFrame {
         syncMetricsLabel.setForeground(TEXT_MUTED);
         syncMetricsLabel.setAlignmentX(LEFT_ALIGNMENT);
         card.add(syncMetricsLabel);
+
+        adaptiveBiasLabel = new JLabel("Adaptive bias: �");
+        adaptiveBiasLabel.setFont(sf(Font.PLAIN, 11));
+        adaptiveBiasLabel.setForeground(TEXT_MUTED);
+        adaptiveBiasLabel.setAlignmentX(LEFT_ALIGNMENT);
+        card.add(adaptiveBiasLabel);
         card.add(gap(7));
 
         observerStatusLabel = new JLabel("BROWSER EXTENSION: OFFLINE");
@@ -277,6 +284,7 @@ public class MainWindow extends JFrame {
                 sync.status() + (sync.hubConnected() ? "  •  SIGNALR ONLINE" : "  •  HTTP")
         );
 
+        adaptiveBiasLabel.setText(String.format("Adaptive bias: %.0f ms", sync.adaptiveBiasMillis()));
         if (sync.sampleCount() > 0) {
             syncMetricsLabel.setText(String.format(
                     "Offset: %+.1f ms  |  min RTT: %.1f ms  |  Jitter: %.1f ms  |  ±%.1f ms",
@@ -293,6 +301,7 @@ public class MainWindow extends JFrame {
             }
         } else {
             syncMetricsLabel.setText(sync.message());
+            adaptiveBiasLabel.setText(String.format("Adaptive bias: %.0f ms", sync.adaptiveBiasMillis()));
         }
     }
 
@@ -887,3 +896,4 @@ public class MainWindow extends JFrame {
         return Box.createRigidArea(new Dimension(0, size));
     }
 }
+

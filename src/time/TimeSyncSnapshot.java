@@ -54,9 +54,7 @@ public record TimeSyncSnapshot(
     }
 
     public ZonedDateTime conservativeServerNow() {
-        long displayBiasNanos = estimatedOutboundLatencyNanos()
-                + Math.round(Math.max(0.0, uncertaintyMillis) * 1_000_000.0)
-                + 250_000_000L;
+        long displayBiasNanos = conservativeDisplayBiasNanos();
         return fromEpochNanos(serverEpochNanosNow() - displayBiasNanos).atZone(UZEX_ZONE);
     }
 
@@ -95,6 +93,19 @@ public record TimeSyncSnapshot(
         return Math.round(minRttMillis * 500_000.0);
     }
 
+    public double adaptiveBiasMillis() {
+        double baseBiasMillis = (minRttMillis * 0.5) + (jitterMillis * 0.5);
+        double guardMillis = Math.max(20.0, Math.min(120.0, uncertaintyMillis * 0.5));
+        return Math.max(20.0, Math.min(180.0, baseBiasMillis + guardMillis));
+    }
+
+    private long conservativeDisplayBiasNanos() {
+        double baseBiasMillis = (minRttMillis * 0.5) + (jitterMillis * 0.5);
+        double guardMillis = Math.max(20.0, Math.min(120.0, uncertaintyMillis * 0.5));
+        double totalBiasMillis = Math.max(20.0, Math.min(180.0, baseBiasMillis + guardMillis));
+        return Math.round(totalBiasMillis * 1_000_000.0);
+    }
+
     public static long toEpochNanos(Instant instant) {
         return Math.addExact(
                 Math.multiplyExact(instant.getEpochSecond(), 1_000_000_000L),
@@ -108,3 +119,6 @@ public record TimeSyncSnapshot(
         return Instant.ofEpochSecond(seconds, nanos);
     }
 }
+
+
+
