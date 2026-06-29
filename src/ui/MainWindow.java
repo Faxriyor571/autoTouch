@@ -135,7 +135,6 @@ public class MainWindow extends JFrame {
         setTitle("Auto_Click");
         setSize(520, 760);
         setMinimumSize(new Dimension(460, 640));
-        setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         getContentPane().setBackground(BG_DARK);
         addWindowListener(new WindowAdapter() {
@@ -234,7 +233,7 @@ public class MainWindow extends JFrame {
         syncStatusLabel.setAlignmentX(LEFT_ALIGNMENT);
         card.add(syncStatusLabel);
 
-        syncMetricsLabel = new JLabel("Offset: —  |  RTT: —  |  Jitter: —");
+        syncMetricsLabel = new JLabel("Offset: --  |  RTT: --  |  Jitter: --");
         syncMetricsLabel.setFont(sf(Font.PLAIN, 10));
         syncMetricsLabel.setForeground(TEXT_MUTED);
         syncMetricsLabel.setAlignmentX(LEFT_ALIGNMENT);
@@ -281,13 +280,12 @@ public class MainWindow extends JFrame {
         };
         syncStatusLabel.setForeground(color);
         syncStatusLabel.setText(
-                sync.status() + (sync.hubConnected() ? "  •  SIGNALR ONLINE" : "  •  HTTP")
+                sync.status() + (sync.hubConnected() ? "  *  SIGNALR ONLINE" : "  *  HTTP")
         );
-
         adaptiveBiasLabel.setText(String.format("Adaptive bias: %.0f ms", sync.adaptiveBiasMillis()));
         if (sync.sampleCount() > 0) {
             syncMetricsLabel.setText(String.format(
-                    "Offset: %+.1f ms  |  min RTT: %.1f ms  |  Jitter: %.1f ms  |  ±%.1f ms",
+                    "Offset: %+.1f ms  |  min RTT: %.1f ms  |  Jitter: %.1f ms  |  +/-%.1f ms",
                     sync.offsetMillis(), sync.minRttMillis(),
                     sync.jitterMillis(), sync.uncertaintyMillis()
             ));
@@ -340,8 +338,8 @@ public class MainWindow extends JFrame {
             observerStatusLabel.setText(
                     "NATIJA: " + observation.method() + " " + observation.path()
                             + (observation.hasServerTimestamp()
-                            ? "  •  TIME TOPILDI"
-                            : "  •  TIME YO'Q")
+                            ? "  *  TIME TOPILDI"
+                            : "  *  TIME YO'Q")
             );
         } else {
             observerStatusLabel.setText("BROWSER EXTENSION: ONLINE");
@@ -404,7 +402,7 @@ public class MainWindow extends JFrame {
         headerRow.setAlignmentX(LEFT_ALIGNMENT);
         headerRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 22));
         headerRow.add(makeLabel("KOORDINATALAR"), BorderLayout.WEST);
-        JLabel hint = new JLabel("F1  →  yangi nuqta qo'shish");
+        JLabel hint = new JLabel("F2  ->  yangi nuqta qo'shish");
         hint.setFont(sf(Font.PLAIN, 10));
         hint.setForeground(ACCENT_GREEN);
         headerRow.add(hint, BorderLayout.EAST);
@@ -445,7 +443,7 @@ public class MainWindow extends JFrame {
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.add(makeLabel("OXIRGI NATIJA"));
         card.add(gap(8));
-        resultLabel = new JLabel("—");
+        resultLabel = new JLabel("--");
         resultLabel.setFont(sf(Font.PLAIN, 12));
         resultLabel.setForeground(TEXT_MUTED);
         resultLabel.setAlignmentX(LEFT_ALIGNMENT);
@@ -475,7 +473,7 @@ public class MainWindow extends JFrame {
         p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 18));
         p.setPreferredSize(new Dimension(0, 18));
         p.setAlignmentX(LEFT_ALIGNMENT);
-        JLabel l = new JLabel("Auto Touch Pro  —  Professional Edition");
+        JLabel l = new JLabel("Auto Touch Pro  --  Professional Edition");
         JLabel r = new JLabel("v3.0");
         l.setFont(sf(Font.PLAIN, 10)); l.setForeground(TEXT_MUTED);
         r.setFont(sf(Font.PLAIN, 10)); r.setForeground(TEXT_MUTED);
@@ -498,11 +496,10 @@ public class MainWindow extends JFrame {
         pointsPanel.revalidate();
         pointsPanel.repaint();
         pack();
-        setLocationRelativeTo(null);
     }
 
     private void showEmptyHint() {
-        JLabel hint = new JLabel("Koordinatalar yo'q  —  F1 bosing");
+        JLabel hint = new JLabel("Koordinatalar yo'q  -  F2 bosing");
         hint.setFont(sf(Font.ITALIC, 12));
         hint.setForeground(TEXT_MUTED);
         hint.setAlignmentX(LEFT_ALIGNMENT);
@@ -584,7 +581,7 @@ public class MainWindow extends JFrame {
         if (coordinateService.isEmpty()) {
             JOptionPane.showMessageDialog(
                     this,
-                    "Kamida bitta koordinata saqlang!\nBoshqa oynada F1 tugmasini bosing.",
+                    "Kamida bitta koordinata saqlang!\nBoshqa oynada F2 tugmasini bosing.",
                     "Koordinata yo'q",
                     JOptionPane.WARNING_MESSAGE
             );
@@ -613,7 +610,7 @@ public class MainWindow extends JFrame {
             return;
         }
 
-        // F1 orqali ro'yxat o'zgarib qolmasligi uchun start paytidagi nusxa.
+        // F2 orqali ro'yxat o'zgarib qolmasligi uchun start paytidagi nusxa.
         List<Coordinate> pointsToClick = List.copyOf(coordinateService.getAll());
         boolean compensateNetwork = networkCompensationCheck.isSelected();
         long targetServerEpochNanos = armedSync.targetServerEpochNanos(targetTime);
@@ -632,7 +629,7 @@ public class MainWindow extends JFrame {
         adaptiveLatencyModel.arm(targetServerEpochNanos);
         setState(State.WAITING);
         criticalTiming = false;
-        resultLabel.setText("—");
+        resultLabel.setText("--");
         resultLabel.setForeground(TEXT_MUTED);
         timerService.startCountdownDynamic(
                 () -> {
@@ -758,7 +755,7 @@ public class MainWindow extends JFrame {
         List<Coordinate> all = coordinateService.getAll();
         if (all.isEmpty()) return;
         Coordinate last = all.get(all.size() - 1);
-        setTitle(last.getName() + " saqlandi  —  " + last.toString());
+        setTitle(last.getName() + " saqlandi  --  " + last.toString());
         new Thread(() -> {
             try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
             SwingUtilities.invokeLater(() -> setTitle("Auto Touch Pro"));

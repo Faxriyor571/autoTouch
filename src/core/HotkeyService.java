@@ -11,11 +11,11 @@ import java.util.logging.Logger;
 
 public class HotkeyService implements NativeKeyListener {
 
-    private Runnable          onF1;
+    private Runnable          onF2;
     private Consumer<Integer> uiCallback;
 
-    public void start(Runnable onF1) {
-        this.onF1 = onF1;
+    public void start(Runnable onF2) {
+        this.onF2 = onF2;
 
         Logger logger = Logger.getLogger(GlobalScreen.class.getPackage().getName());
         logger.setLevel(Level.OFF);
@@ -24,7 +24,7 @@ public class HotkeyService implements NativeKeyListener {
         try {
             GlobalScreen.registerNativeHook();
             GlobalScreen.addNativeKeyListener(this);
-            System.out.println("[HOOK] GlobalScreen muvaffaqiyatli ulandi. F1 = yangi nuqta");
+            System.out.println("[HOOK] GlobalScreen muvaffaqiyatli ulandi. F2 = yangi nuqta");
         } catch (NativeHookException e) {
             System.err.println("[HOOK] GlobalScreen ulanishda XATO: " + e.getMessage());
         }
@@ -43,18 +43,18 @@ public class HotkeyService implements NativeKeyListener {
         } catch (NativeHookException e) {
             System.err.println("[HOOK] To'xtatishda xato: " + e.getMessage());
         }
-        onF1       = null;
+        onF2       = null;
         uiCallback = null;
     }
 
     @Override
     public void nativeKeyPressed(NativeKeyEvent e) {
-        if (onF1 == null) return;
-        if (e.getKeyCode() != NativeKeyEvent.VC_F1) return;
+        if (onF2 == null) return;
+        if (e.getKeyCode() != NativeKeyEvent.VC_F2) return;
 
-        System.out.println("[HOOK] F1 bosildi — yangi nuqta qo'shilmoqda");
+        System.out.println("[HOOK] F2 bosildi -- yangi nuqta qo'shilmoqda");
 
-        onF1.run();
+        onF2.run();
 
         if (uiCallback != null) {
             javax.swing.SwingUtilities.invokeLater(() -> uiCallback.accept(0));

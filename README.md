@@ -7,7 +7,7 @@ Bu loyiha maqsadli vaqt kirganda bir yoki bir nechta koordinataga avtomatik bosi
 - Windows
 - JDK 17 yoki undan yuqori
 - Google Chrome yoki Microsoft Edge
-- `jnativehook-2.2.2.jar` loyiha ichidagi `lib/` papkasida bo‘lishi kerak
+- `jnativehook-2.2.2.jar` loyiha ichidagi `lib/` papkasida boâ€˜lishi kerak
 
 ## Loyihada nimalar bor
 
@@ -21,16 +21,16 @@ Bu loyiha maqsadli vaqt kirganda bir yoki bir nechta koordinataga avtomatik bosi
 
 ## Qanday ishga tushiriladi
 
-1. Loyihani IntelliJ IDEA yoki boshqa Java IDE’da oching.
-2. Project SDK ni JDK 17 ga qo‘ying.
-3. `lib/jnativehook-2.2.2.jar` project classpath’ida turganini tekshiring.
+1. Loyihani IntelliJ IDEA yoki boshqa Java IDEâ€™da oching.
+2. Project SDK ni JDK 17 ga qoâ€˜ying.
+3. `lib/jnativehook-2.2.2.jar` project classpathâ€™ida turganini tekshiring.
 4. `src/app/Main.java` ni run qiling.
 
 ## Dasturdan foydalanish
 
 1. Dasturni oching.
-2. `F1` tugmasini bosib joriy sichqoncha koordinatasini ro‘yxatga qo‘shing.
-3. Kerak bo‘lsa bir nechta nuqta qo‘shing.
+2. `F2` tugmasini bosib joriy sichqoncha koordinatasini roâ€˜yxatga qoâ€˜shing.
+3. Kerak boâ€˜lsa bir nechta nuqta qoâ€˜shing.
 4. `UZEX MAQSAD VAQTI` maydoniga vaqt kiriting, masalan:
    `12:33:00.000`
 5. `START` tugmasini bosing.
@@ -38,18 +38,18 @@ Bu loyiha maqsadli vaqt kirganda bir yoki bir nechta koordinataga avtomatik bosi
 
 ## Hotkey
 
-- `F1` - joriy mouse koordinatasini qo‘shadi
+- `F2` - joriy mouse koordinatasini qoâ€˜shadi
 
 ## Vaqt qanday ishlaydi
 
-- Lokal kompyuter vaqti alohida ko‘rsatiladi
+- Lokal kompyuter vaqti alohida koâ€˜rsatiladi
 - UZEX server vaqti alohida sinxronlanadi
 - Target vaqt UZEX vaqti sifatida qabul qilinadi
 - Tarmoq kechikishi `min RTT` va adaptive model bilan hisobga olinadi
 
 ## Browser extension nima uchun kerak
 
-Bu extension login qilingan sahifadagi network/DOM natijalarini kuzatadi va lokal bridge’ga sanitized metadata yuboradi.
+Bu extension login qilingan sahifadagi network/DOM natijalarini kuzatadi va lokal bridgeâ€™ga sanitized metadata yuboradi.
 
 Bu quyidagilarni beradi:
 
@@ -57,31 +57,31 @@ Bu quyidagilarni beradi:
 - natija kelgan endpoint haqida minimal diagnostika
 - adaptive kechikish model uchun real sample
 
-### Extension ni o‘rnatish
+### Extension ni oâ€˜rnatish
 
-1. Chrome yoki Edge’da `chrome://extensions` yoki `edge://extensions` ni oching.
+1. Chrome yoki Edgeâ€™da `chrome://extensions` yoki `edge://extensions` ni oching.
 2. `Developer mode` ni yoqing.
 3. `Load unpacked` ni bosing.
 4. `browser-extension/` papkasini tanlang.
 5. UZEX sahifasini qayta oching yoki reload qiling.
 6. Dastur oynasida `BROWSER EXTENSION: ONLINE` chiqishini tekshiring.
 
-## To‘g‘ri ishlashi uchun tartib
+## Toâ€˜gâ€˜ri ishlashi uchun tartib
 
-1. Dastur ochilgan bo‘lsin.
-2. UZEX vaqti sinxron bo‘lsin.
-3. Browser extension `ONLINE` bo‘lsin.
-4. Koordinatalar oldindan qo‘shilgan bo‘lsin.
+1. Dastur ochilgan boâ€˜lsin.
+2. UZEX vaqti sinxron boâ€˜lsin.
+3. Browser extension `ONLINE` boâ€˜lsin.
+4. Koordinatalar oldindan qoâ€˜shilgan boâ€˜lsin.
 5. Target vaqt kelishidan kamida 300 ms oldin `START` bosilsin.
 
 ## Eslatma
 
-- `12:33:00.000` ga qo‘ysangiz, bosish shu vaqtga maksimal yaqin bajariladi.
-- Real aniqlik kompyuter tezligi, internet, brauzer response formati va sahifadagi login holatiga bog‘liq.
+- `12:33:00.000` ga qoâ€˜ysangiz, bosish shu vaqtga maksimal yaqin bajariladi.
+- Real aniqlik kompyuter tezligi, internet, brauzer response formati va sahifadagi login holatiga bogâ€˜liq.
 - Agar `TIME YO'Q` chiqsa, demak extension hali kerakli natijani ushlamagan.
-- Agar UZEX sahifa tuzilmasi o‘zgarsa, result parserni moslashtirish kerak bo‘lishi mumkin.
+- Agar UZEX sahifa tuzilmasi oâ€˜zgarsa, result parserni moslashtirish kerak boâ€˜lishi mumkin.
 
 ## Tekshiruv
 
-Loyiha Java compile’dan muvaffaqiyatli o‘tdi. Interactive GUI smoke test esa real user session’da qo‘lda tekshiriladi.
+Loyiha Java compileâ€™dan muvaffaqiyatli oâ€˜tdi. Interactive GUI smoke test esa real user sessionâ€™da qoâ€˜lda tekshiriladi.
 

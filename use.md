@@ -81,17 +81,17 @@ Extension to'g'ri ulangan bo'lsa, dastur ichida `BROWSER EXTENSION: ONLINE` ko'r
 
 ## 7. Koordinatalarni qachon qo'shish kerak
 
-Koordinatalarni `F1` bilan qo'shasiz.
+Koordinatalarni `F2` bilan qo'shasiz.
 
 To'g'ri tartib:
 
 1. Sichqonchani bosiladigan tugma yoki maydon ustiga olib boring.
-2. `F1` tugmasini bosing.
+2. `F2` tugmasini bosing.
 3. Agar boshqa nuqtalar ham kerak bo'lsa, ularni ham birma-bir qo'shing.
 
 Muhim:
 
-- `F1` bosilganda joriy mouse joyi saqlanadi
+- `F2` bosilganda joriy mouse joyi saqlanadi
 - qancha nuqta qo'shsangiz, shuncha bosish ketma-ket bajariladi
 - bosish tartibi ro'yxatga qo'shilgan ketma-ketlik bo'yicha bo'ladi
 
@@ -137,7 +137,7 @@ Bu oqimni bir joyda ko'ring:
 3. UZEX saytida login qilinadi.
 4. Sahifa reload qilinadi.
 5. `BROWSER EXTENSION: ONLINE` tekshiriladi.
-6. Kerakli koordinatalar `F1` bilan qo'shiladi.
+6. Kerakli koordinatalar `F2` bilan qo'shiladi.
 7. Target vaqt kiritiladi.
 8. `START` bosiladi.
 9. Dastur UZEX vaqtiga qarab kutadi.
@@ -168,7 +168,7 @@ Eng to'g'ri amaliy tartib:
 4. Login qiling.
 5. Sahifani reload qiling.
 6. `BROWSER EXTENSION: ONLINE` chiqishini kuting.
-7. Bosiladigan koordinatalarni `F1` bilan qo'shing.
+7. Bosiladigan koordinatalarni `F2` bilan qo'shing.
 8. Target vaqtni kiriting.
 9. `START` bosib, dasturni kutishga qo'ying.
 
@@ -187,7 +187,7 @@ Masalan, siz `12:33:00.000` ga bosishni xohlaysiz:
 1. Dasturni ochasiz.
 2. Extensionni yoqasiz.
 3. UZEX saytiga kirasiz.
-4. Koordinatani `F1` bilan qo'shasiz.
+4. Koordinatani `F2` bilan qo'shasiz.
 5. `12:33:00.000` ni kiritasiz.
 6. `START` bosasiz.
 7. Dastur 12:33 ga yaqinlashganda o'zi bosadi.
