@@ -133,8 +133,8 @@ public class MainWindow extends JFrame {
 
     private void setupWindow() {
         setTitle("Auto_Click");
-        setSize(540, 940);
-        setMinimumSize(new Dimension(480, 760));
+        setSize(520, 760);
+        setMinimumSize(new Dimension(460, 640));
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         getContentPane().setBackground(BG_DARK);
@@ -156,16 +156,16 @@ public class MainWindow extends JFrame {
         JPanel content = new JPanel();
         content.setBackground(BG_DARK);
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        content.setBorder(new EmptyBorder(20, 20, 20, 20));
+        content.setBorder(new EmptyBorder(12, 12, 12, 12));
 
-        content.add(buildHeader());        content.add(gap(14));
-        content.add(buildClockCard());     content.add(gap(10));
-        content.add(buildSyncCard());      content.add(gap(10));
-        content.add(buildTargetCard());    content.add(gap(10));
-        content.add(buildPointsCard());    content.add(gap(10));
-        content.add(buildStatusCard());    content.add(gap(10));
-        content.add(buildResultCard());    content.add(gap(16));
-        content.add(buildActionButtons()); content.add(gap(14));
+        content.add(buildHeader());        content.add(gap(8));
+        content.add(buildClockCard());     content.add(gap(6));
+        content.add(buildSyncCard());      content.add(gap(6));
+        content.add(buildTargetCard());    content.add(gap(6));
+        content.add(buildPointsCard());    content.add(gap(6));
+        content.add(buildStatusCard());    content.add(gap(6));
+        content.add(buildResultCard());    content.add(gap(6));
+        content.add(buildActionButtons()); content.add(gap(6));
         content.add(buildFooter());
 
         JScrollPane scrollPane = new JScrollPane(
@@ -191,11 +191,11 @@ public class MainWindow extends JFrame {
     private JPanel buildHeader() {
         JPanel p = new JPanel(new BorderLayout());
         p.setOpaque(false);
-        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
-        p.setPreferredSize(new Dimension(0, 42));
-        p.setMinimumSize(new Dimension(0, 42));
+        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
+        p.setPreferredSize(new Dimension(0, 34));
+        p.setMinimumSize(new Dimension(0, 34));
         JLabel title = new JLabel("Auto_Click");
-        title.setFont(sf(Font.BOLD, 22));
+        title.setFont(sf(Font.BOLD, 18));
         title.setForeground(TEXT_PRIMARY);
         p.add(title, BorderLayout.WEST);
         p.add(makePill("v3.0", ACCENT_BLUE), BorderLayout.EAST);
@@ -206,9 +206,9 @@ public class MainWindow extends JFrame {
         JPanel card = makeCard();
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.add(makeLabel("LOKAL KOMPYUTER VAQTI"));
-        card.add(gap(6));
+        card.add(gap(4));
         clockLabel = new JLabel("00:00:00.000");
-        clockLabel.setFont(new Font("Monospaced", Font.BOLD, 32));
+        clockLabel.setFont(new Font("Monospaced", Font.BOLD, 24));
         clockLabel.setForeground(ACCENT_BLUE);
         clockLabel.setAlignmentX(LEFT_ALIGNMENT);
         card.add(clockLabel);
@@ -219,42 +219,42 @@ public class MainWindow extends JFrame {
         JPanel card = makeCard();
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.add(makeLabel("UZEX SERVER VAQTI"));
-        card.add(gap(6));
+        card.add(gap(4));
 
         uzexClockLabel = new JLabel("--:--:--.---");
-        uzexClockLabel.setFont(new Font("Monospaced", Font.BOLD, 28));
+        uzexClockLabel.setFont(new Font("Monospaced", Font.BOLD, 20));
         uzexClockLabel.setForeground(ACCENT_GREEN);
         uzexClockLabel.setAlignmentX(LEFT_ALIGNMENT);
         card.add(uzexClockLabel);
-        card.add(gap(6));
+        card.add(gap(4));
 
         syncStatusLabel = new JLabel("SINXRONLANMOQDA...");
-        syncStatusLabel.setFont(sf(Font.BOLD, 12));
+        syncStatusLabel.setFont(sf(Font.BOLD, 11));
         syncStatusLabel.setForeground(ACCENT_AMBER);
         syncStatusLabel.setAlignmentX(LEFT_ALIGNMENT);
         card.add(syncStatusLabel);
 
         syncMetricsLabel = new JLabel("Offset: —  |  RTT: —  |  Jitter: —");
-        syncMetricsLabel.setFont(sf(Font.PLAIN, 11));
+        syncMetricsLabel.setFont(sf(Font.PLAIN, 10));
         syncMetricsLabel.setForeground(TEXT_MUTED);
         syncMetricsLabel.setAlignmentX(LEFT_ALIGNMENT);
         card.add(syncMetricsLabel);
 
         adaptiveBiasLabel = new JLabel("Adaptive bias: --");
-        adaptiveBiasLabel.setFont(sf(Font.PLAIN, 11));
+        adaptiveBiasLabel.setFont(sf(Font.PLAIN, 10));
         adaptiveBiasLabel.setForeground(TEXT_MUTED);
         adaptiveBiasLabel.setAlignmentX(LEFT_ALIGNMENT);
         card.add(adaptiveBiasLabel);
         card.add(gap(7));
 
         observerStatusLabel = new JLabel("BROWSER EXTENSION: OFFLINE");
-        observerStatusLabel.setFont(sf(Font.BOLD, 11));
+        observerStatusLabel.setFont(sf(Font.BOLD, 10));
         observerStatusLabel.setForeground(ACCENT_AMBER);
         observerStatusLabel.setAlignmentX(LEFT_ALIGNMENT);
         card.add(observerStatusLabel);
 
         adaptiveStatusLabel = new JLabel("Adaptive: 3 ta real natija kutilmoqda");
-        adaptiveStatusLabel.setFont(sf(Font.PLAIN, 11));
+        adaptiveStatusLabel.setFont(sf(Font.PLAIN, 10));
         adaptiveStatusLabel.setForeground(TEXT_MUTED);
         adaptiveStatusLabel.setAlignmentX(LEFT_ALIGNMENT);
         card.add(adaptiveStatusLabel);
@@ -266,7 +266,7 @@ public class MainWindow extends JFrame {
         );
         networkCompensationCheck.setOpaque(false);
         networkCompensationCheck.setForeground(TEXT_PRIMARY);
-        networkCompensationCheck.setFont(sf(Font.PLAIN, 11));
+        networkCompensationCheck.setFont(sf(Font.PLAIN, 10));
         networkCompensationCheck.setFocusPainted(false);
         networkCompensationCheck.setAlignmentX(LEFT_ALIGNMENT);
         card.add(networkCompensationCheck);
@@ -372,18 +372,18 @@ public class MainWindow extends JFrame {
         card.add(makeLabel("UZEX MAQSAD VAQTI  (HH:mm:ss.SSS)"));
         card.add(gap(8));
         targetTimeField = new JTextField("12:00:00.000");
-        targetTimeField.setFont(new Font("Monospaced", Font.PLAIN, 20));
+        targetTimeField.setFont(new Font("Monospaced", Font.PLAIN, 16));
         targetTimeField.setForeground(TEXT_PRIMARY);
         targetTimeField.setBackground(BG_INPUT);
         targetTimeField.setCaretColor(ACCENT_BLUE);
-        targetTimeField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
-        targetTimeField.setPreferredSize(new Dimension(0, 46));
+        targetTimeField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        targetTimeField.setPreferredSize(new Dimension(0, 40));
         targetTimeField.setAlignmentX(LEFT_ALIGNMENT);
         styleInput(targetTimeField);
         card.add(targetTimeField);
-        card.add(gap(10));
+        card.add(gap(6));
         countdownLabel = new JLabel("--:--.---");
-        countdownLabel.setFont(new Font("Monospaced", Font.BOLD, 22));
+        countdownLabel.setFont(new Font("Monospaced", Font.BOLD, 18));
         countdownLabel.setForeground(ACCENT_AMBER);
         countdownLabel.setAlignmentX(LEFT_ALIGNMENT);
         JPanel cRow = new JPanel();
@@ -402,14 +402,14 @@ public class MainWindow extends JFrame {
         JPanel headerRow = new JPanel(new BorderLayout());
         headerRow.setOpaque(false);
         headerRow.setAlignmentX(LEFT_ALIGNMENT);
-        headerRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 24));
+        headerRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 22));
         headerRow.add(makeLabel("KOORDINATALAR"), BorderLayout.WEST);
         JLabel hint = new JLabel("F1  →  yangi nuqta qo'shish");
         hint.setFont(sf(Font.PLAIN, 10));
         hint.setForeground(ACCENT_GREEN);
         headerRow.add(hint, BorderLayout.EAST);
         card.add(headerRow);
-        card.add(gap(10));
+        card.add(gap(6));
         pointsPanel = new JPanel();
         pointsPanel.setOpaque(false);
         pointsPanel.setLayout(new BoxLayout(pointsPanel, BoxLayout.Y_AXIS));
@@ -430,7 +430,7 @@ public class MainWindow extends JFrame {
         row.setAlignmentX(LEFT_ALIGNMENT);
         statusDot   = makeDot(ACCENT_RED);
         statusLabel = new JLabel("TO'XTAGAN");
-        statusLabel.setFont(sf(Font.BOLD, 16));
+        statusLabel.setFont(sf(Font.BOLD, 14));
         statusLabel.setForeground(ACCENT_RED);
         row.add(statusDot);
         row.add(Box.createRigidArea(new Dimension(10, 0)));
@@ -446,7 +446,7 @@ public class MainWindow extends JFrame {
         card.add(makeLabel("OXIRGI NATIJA"));
         card.add(gap(8));
         resultLabel = new JLabel("—");
-        resultLabel.setFont(sf(Font.PLAIN, 13));
+        resultLabel.setFont(sf(Font.PLAIN, 12));
         resultLabel.setForeground(TEXT_MUTED);
         resultLabel.setAlignmentX(LEFT_ALIGNMENT);
         card.add(resultLabel);
@@ -456,8 +456,8 @@ public class MainWindow extends JFrame {
     private JPanel buildActionButtons() {
         JPanel p = new JPanel(new GridLayout(1, 2, 12, 0));
         p.setOpaque(false);
-        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
-        p.setPreferredSize(new Dimension(0, 52));
+        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+        p.setPreferredSize(new Dimension(0, 44));
         p.setAlignmentX(LEFT_ALIGNMENT);
         startBtn = makeBigBtn("BOSHLASH",   ACCENT_GREEN);
         stopBtn  = makeBigBtn("TO'XTATISH", ACCENT_RED);
@@ -472,13 +472,13 @@ public class MainWindow extends JFrame {
     private JPanel buildFooter() {
         JPanel p = new JPanel(new BorderLayout());
         p.setOpaque(false);
-        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 22));
-        p.setPreferredSize(new Dimension(0, 22));
+        p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 18));
+        p.setPreferredSize(new Dimension(0, 18));
         p.setAlignmentX(LEFT_ALIGNMENT);
         JLabel l = new JLabel("Auto Touch Pro  —  Professional Edition");
         JLabel r = new JLabel("v3.0");
-        l.setFont(sf(Font.PLAIN, 11)); l.setForeground(TEXT_MUTED);
-        r.setFont(sf(Font.PLAIN, 11)); r.setForeground(TEXT_MUTED);
+        l.setFont(sf(Font.PLAIN, 10)); l.setForeground(TEXT_MUTED);
+        r.setFont(sf(Font.PLAIN, 10)); r.setForeground(TEXT_MUTED);
         p.add(l, BorderLayout.WEST);
         p.add(r, BorderLayout.EAST);
         return p;
@@ -514,10 +514,10 @@ public class MainWindow extends JFrame {
         row.setBackground(BG_INPUT);
         row.setBorder(new CompoundBorder(
                 new LineBorder(BORDER_COLOR, 1, true),
-                new EmptyBorder(10, 14, 10, 14)
+                new EmptyBorder(8, 12, 8, 12)
         ));
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
-        row.setPreferredSize(new Dimension(0, 50));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+        row.setPreferredSize(new Dimension(0, 44));
         row.setAlignmentX(LEFT_ALIGNMENT);
 
         int idx = parseIndex(coord.getName());
@@ -528,11 +528,11 @@ public class MainWindow extends JFrame {
         left.setLayout(new BoxLayout(left, BoxLayout.X_AXIS));
 
         JLabel nameLabel  = new JLabel(coord.getName());
-        nameLabel.setFont(sf(Font.BOLD, 13));
+        nameLabel.setFont(sf(Font.BOLD, 12));
         nameLabel.setForeground(TEXT_PRIMARY);
 
         JLabel coordLabel = new JLabel(coord.toString());
-        coordLabel.setFont(sf(Font.PLAIN, 12));
+        coordLabel.setFont(sf(Font.PLAIN, 11));
         coordLabel.setForeground(TEXT_MUTED);
 
         left.add(makeDot(accent));
@@ -770,7 +770,7 @@ public class MainWindow extends JFrame {
         p.setBackground(BG_CARD);
         p.setBorder(new CompoundBorder(
                 new LineBorder(BORDER_COLOR, 1, true),
-                new EmptyBorder(14, 16, 14, 16)
+                new EmptyBorder(10, 12, 10, 12)
         ));
         p.setAlignmentX(LEFT_ALIGNMENT);
         p.setMaximumSize(new Dimension(Integer.MAX_VALUE, Short.MAX_VALUE));
@@ -845,13 +845,13 @@ public class MainWindow extends JFrame {
                 super.paintComponent(g);
             }
         };
-        b.setFont(sf(Font.BOLD, 12));
+        b.setFont(sf(Font.BOLD, 11));
         b.setForeground(accent);
         b.setContentAreaFilled(false);
         b.setBorderPainted(false);
         b.setFocusPainted(false);
         b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        b.setPreferredSize(new Dimension(90, 32));
+        b.setPreferredSize(new Dimension(82, 28));
         return b;
     }
 
