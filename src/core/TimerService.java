@@ -11,6 +11,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.LockSupport;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
@@ -19,8 +20,8 @@ public class TimerService {
 
     private static final DateTimeFormatter FORMATTER =
             DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
-    private static final long COUNTDOWN_TICK_MS = 25;
-    private static final long PRECISION_UI_TICK_MS = 10;
+    private static final long COUNTDOWN_TICK_MS = 10;
+    private static final long PRECISION_UI_TICK_MS = 5;
 
     private final ScheduledExecutorService scheduler =
             Executors.newScheduledThreadPool(2);
@@ -97,7 +98,7 @@ public class TimerService {
             long remainingMs =
                     (targetNanoTime - System.nanoTime()) / 1_000_000;
 
-            if (remainingMs > 200) {
+            if (remainingMs > 100) {
                 onTick.accept(remainingMs);
 
             } else {
@@ -123,31 +124,30 @@ public class TimerService {
         Runnable precisionTask = () -> {
 
             // Faza 2: Thread.sleep(1) — 20ms qolguncha
+            // Faza 2: 10ms qolguncha UI tick va yengil park ishlaydi.
             long lastReportedMs = Long.MAX_VALUE;
             while (true) {
                 if (isCancelled(generation)) return;
-                long remainingMs =
-                        (targetNanoTime - System.nanoTime()) / 1_000_000;
-                if (remainingMs <= 20) break;
+                long remainingNs = targetNanoTime - System.nanoTime();
+                if (remainingNs <= 10_000_000L) break;
+                long remainingMs = remainingNs / 1_000_000L;
                 if (lastReportedMs == Long.MAX_VALUE
                         || lastReportedMs - remainingMs >= PRECISION_UI_TICK_MS) {
                     onTick.accept(remainingMs);
                     lastReportedMs = remainingMs;
                 }
-                try {
-                    Thread.sleep(1);
-                } catch (InterruptedException e) {
-                    return;
-                }
+                LockSupport.parkNanos(250_000L);
             }
 
             // Critical window: UI yangilanmaydi, birinchi click joyi tayyorlanadi.
             if (isCancelled(generation)) return;
             onPrepare.run();
 
-            // Faza 3: server vaqti bilan anchor qilingan monotonic clock.
-            while (System.nanoTime() < targetNanoTime) {
+            // Faza 3: targetga qadar oxirgi 10ms spin qilamiz.
+            while (true) {
                 if (isCancelled(generation)) return;
+                long remainingNs = targetNanoTime - System.nanoTime();
+                if (remainingNs <= 0) break;
                 Thread.onSpinWait();
             }
 
