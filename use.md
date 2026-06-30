@@ -1,6 +1,6 @@
 # AutoTouch / UZEX Auto Clicker
 
-Bu dastur ma'lum vaqt kelganda sichqoncha bosishlarni avtomatik qiladi. Hozirgi sozlama UZEX `spot.uzex.uz` vaqtiga qarab ishlaydi.
+Bu dastur ma'lum vaqt kelganda sichqoncha bosishlarni avtomatik qiladi. Hozirgi sozlama lokal vaqt, server/local farqi va server maqsad vaqtiga qarab ishlaydi.
 
 ## 1. Nima kerak bo'ladi
 
@@ -97,7 +97,7 @@ Muhim:
 
 ## 8. Target vaqtni qachon kiritish kerak
 
-Koordinatalar tayyor bo'lgandan keyin target vaqt kiriting.
+Koordinatalar tayyor bo'lgandan keyin server vaqti uchun target vaqt kiriting. Avval server va lokal farqini kiriting, so'ng checkbox orqali server vaqti oldindami yoki lokal vaqt oldindami tanlang.
 
 Masalan:
 
@@ -105,26 +105,26 @@ Masalan:
 
 Target vaqt kirishdan oldin quyidagilarni tekshiring:
 
-- UZEX vaqti sinxron ko'rinayotgan bo'lsin
-- extension `ONLINE` bo'lsin
-- ko'rsatgan vaqt o'tib ketmagan bo'lsin
+- server va lokal farq to'g'ri kiritilgan bo'lsin
+- server yoki lokal qaysi biri oldinda ekanini to'g'ri belgilang
+- ko'rsatgan server vaqt o'tib ketmagan bo'lsin
 - ishni boshlashdan oldin kamida 300 ms zaxira vaqt bo'lsin
 
 ## 9. `START` ni qachon bosish kerak
 
-`START` tugmasini target vaqtdan oldin bosasiz.
+`START` tugmasini target server vaqtdan oldin bosasiz.
 
 Tartib:
 
 1. Koordinatalar qo'shilgan bo'ladi.
-2. Extension ishlayotgan bo'ladi.
-3. UZEX vaqti ko'rinib turadi.
-4. Target vaqt kiritilgan bo'ladi.
+2. Server/lokal farq kiritilgan bo'ladi.
+3. Server yoki lokal qaysi biri oldinda ekanini belgilang.
+4. Target server vaqt kiritilgan bo'ladi.
 5. `START` bosiladi.
 
 Shundan keyin dastur:
 
-- vaqtni kuzatadi
+- lokal trigger vaqtini hisoblaydi
 - oxirgi soniyalarda aniqroq rejimga o'tadi
 - target kelganda bosishni bajaradi
 
@@ -140,8 +140,8 @@ Bu oqimni bir joyda ko'ring:
 6. Kerakli koordinatalar `F2` bilan qo'shiladi.
 7. Target vaqt kiritiladi.
 8. `START` bosiladi.
-9. Dastur UZEX vaqtiga qarab kutadi.
-10. Target yaqinlashganda bosish bajariladi.
+9. Dastur hisoblangan lokal trigger vaqtiga qarab kutadi.
+10. Server target yaqinlashganda bosish bajariladi.
 11. Natija oynada chiqadi.
 
 ## 11. Natija nimani bildiradi
@@ -149,8 +149,8 @@ Bu oqimni bir joyda ko'ring:
 Dastur bosgandan keyin quyidagilar ko'rinishi mumkin:
 
 - lokal bosish vaqti
-- UZEX vaqti
-- taxminiy serverga yetib borish farqi
+- hisoblangan server bosish vaqti
+- server target farqi
 - bir nechta bosishning davomiyligi
 
 Extension ishlagan bo'lsa:
@@ -174,8 +174,8 @@ Eng to'g'ri amaliy tartib:
 
 ## 13. Muhim eslatmalar
 
-- Target vaqt UZEX server vaqtiga qarab yoziladi.
-- Lokal kompyuter soatiga emas, UZEX vaqtiga tayangan ma'qul.
+- Target vaqt server vaqtiga qarab yoziladi.
+- Lokal trigger vaqtini dastur o'zi hisoblaydi.
 - Extension ochiq bo'lmasa, natijani ushlash qiyinlashadi.
 - Agar `TIME YO'Q` bo'lsa, extension kerakli response yoki DOM o'zgarishini hali topmagan bo'ladi.
 - Agar UZEX sahifa tuzilishi o'zgarsa, extension parserini yangilash kerak bo'lishi mumkin.

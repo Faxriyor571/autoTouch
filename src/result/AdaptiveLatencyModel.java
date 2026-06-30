@@ -24,7 +24,7 @@ public class AdaptiveLatencyModel {
     private static final Path MODEL_PATH = Path.of("data", "latency-model.properties");
     private static final int MAX_ERRORS_PER_PROFILE = 20;
     private static final double MAX_ACCEPTED_ERROR_MS = 10_000;
-    private static final double MAX_CORRECTION_MS = 500;
+    private static final double MAX_CORRECTION_MS = 250;
 
     private final Map<String, ArrayDeque<Double>> errorsByProfile = new HashMap<>();
     private final CopyOnWriteArrayList<Consumer<AdaptiveSnapshot>> listeners =
@@ -101,7 +101,7 @@ public class AdaptiveLatencyModel {
     }
 
     private void recalculate(String message) {
-        ProfileStats best = errorsByProfile.entrySet().stream()
+        ProfileStats strictBest = errorsByProfile.entrySet().stream()
                 .map(entry -> stats(entry.getKey(), entry.getValue()))
                 .filter(stats -> stats.sampleCount() >= 3 && stats.madMillis() <= 100)
                 .max(Comparator
@@ -109,29 +109,36 @@ public class AdaptiveLatencyModel {
                         .thenComparingDouble(stats -> -stats.madMillis()))
                 .orElse(null);
 
-        if (best == null) {
-            int samples = errorsByProfile.values().stream()
-                    .mapToInt(ArrayDeque::size)
-                    .max()
-                    .orElse(0);
+        ProfileStats fallbackBest = errorsByProfile.entrySet().stream()
+                .map(entry -> stats(entry.getKey(), entry.getValue()))
+                .filter(stats -> stats.sampleCount() >= 3)
+                .max(Comparator
+                        .comparingInt(ProfileStats::sampleCount)
+                        .thenComparingDouble(stats -> -stats.madMillis()))
+                .orElse(null);
+
+        ProfileStats chosen = strictBest != null ? strictBest : fallbackBest;
+        if (chosen == null) {
             snapshot = new AdaptiveSnapshot(
                     0,
-                    samples,
+                    0,
                     "",
                     0,
-                    message == null ? "3 ta real natija kutilmoqda" : message
+                    message == null ? "1 ta real natija kutilmoqda" : message
             );
         } else {
             double correction = Math.max(
                     -MAX_CORRECTION_MS,
-                    Math.min(MAX_CORRECTION_MS, best.medianMillis())
+                    Math.min(MAX_CORRECTION_MS, chosen.medianMillis())
             );
             snapshot = new AdaptiveSnapshot(
                     correction,
-                    best.sampleCount(),
-                    best.profile(),
-                    best.madMillis(),
-                    message == null ? "Adaptive correction faol" : message
+                    chosen.sampleCount(),
+                    chosen.profile(),
+                    chosen.madMillis(),
+                    message == null
+                            ? "Adaptive correction faol"
+                            : message
             );
         }
         for (Consumer<AdaptiveSnapshot> listener : listeners) {
